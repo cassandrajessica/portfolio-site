@@ -38,17 +38,17 @@
   /* Type scale
      clamp(MIN, PREFERRED, MAX): the size grows with the screen width (vw)
      but never goes below MIN or above MAX. No breakpoints needed. */
-  --text-hero: clamp(3.5rem, 10vw, 10rem);       
-  --text-section: clamp(3rem, 9vw, 9rem);        
-  --text-statement: clamp(1.75rem, 3.4vw, 3.25rem); 
-  --text-h2: clamp(1.75rem, 3vw, 2.5rem);       
-  --text-h3: clamp(1.125rem, 1.6vw, 1.375rem);  
-  --text-body: 1rem;                            
+  --text-hero: clamp(3.5rem, 10vw, 10rem);       /* WEB & APP DEVELOPER */
+  --text-section: clamp(3rem, 9vw, 9rem);        /* EXPLORE MY WORK, READY TO CONNECT? */
+  --text-statement: clamp(1.75rem, 3.4vw, 3.25rem); /* I BUILD WEBSITES THAT... */
+  --text-h2: clamp(1.75rem, 3vw, 2.5rem);        /* HI, I'M CJ., EXPERIENCE, TOOLS */
+  --text-h3: clamp(1.125rem, 1.6vw, 1.375rem);   /* row titles like Finders Marketing */
+  --text-body: 1rem;                             /* paragraphs */
   --text-small: 0.875rem;
-  --text-label: 0.6875rem;                      
+  --text-label: 0.6875rem;                       /* mono labels: SCROLL TO EXPLORE */
 
   /* Line heights */
-  --leading-display: 0.9; 
+  --leading-display: 1;   /* tight, for stacked Anton headings */
   --leading-heading: 1.05;
   --leading-body: 1.6;
 
@@ -72,9 +72,9 @@
   --section-space: clamp(5rem, 12vw, 10rem);
 
   /* Layout */
-  --max-width: 1440px;                          
-  --gutter: clamp(1.25rem, 4vw, 4.5rem);        
-  --grid-columns: 6;                            
+  --max-width: 1440px;                           /* matches the Figma frame */
+  --gutter: clamp(1.25rem, 4vw, 4.5rem);         /* space at the screen edges */
+  --grid-columns: 6;                             /* background grid lines; confirm against Figma */
 
   /* Shapes */
   --radius-pill: 999px;

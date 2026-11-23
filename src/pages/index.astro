@@ -1,0 +1,41 @@
+---
+/* ==========================================================================
+   index.astro: the homepage (yoursite.com/)
+   For now this is a test page to confirm the layout, fonts, colors, grid
+   and grain all work. We'll replace the test content with real sections.
+   ========================================================================== */
+import Base from "../layouts/Base.astro";
+---
+
+<Base>
+  <section class="container test">
+    <p class="label">(00) Layout test</p>
+
+    <h1 class="display test-heading">
+      <span class="accent">Hi, I'm Cj.</span>
+      <br />
+      Web &amp; App Developer
+    </h1>
+
+    <p>
+      This paragraph is Geist. The heading is Anton, the label above is Geist
+      Mono, and you should see faint vertical grid lines and a subtle grain
+      across the cream background.
+    </p>
+
+    <p class="muted">This line uses the muted gray.</p>
+  </section>
+</Base>
+
+<style>
+  .test {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding-block: var(--section-space);
+  }
+
+  .test-heading {
+    font-size: var(--text-hero);
+  }
+</style>
