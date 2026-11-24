@@ -168,7 +168,7 @@ const links = [
   .nav-contact {
     grid-column: -2 / -1; /* the last column */
     justify-self: end;
-    padding-right: var(--gutter);
+    margin-right: var(--gutter); /* space from the screen edge, outside the pill */
   }
 
   /* Underline that slides in from the left on hover.
@@ -198,6 +198,37 @@ const links = [
   .nav-link:hover .nav-link-text::after,
   .nav-link:focus-visible .nav-link-text::after {
     transform: scaleX(1);
+  }
+
+  /* ---------- Contact tab ----------
+     A rounded charcoal pill with cream text and the pulsing dot inside.
+     On hover it turns brick red, and the dot switches to cream so it
+     stays visible against the red. No sliding underline inside the pill. */
+  .nav-contact {
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-ink);
+    color: var(--color-bg);
+    border-radius: var(--radius-pill);
+    transition:
+      background-color var(--duration-fast) var(--ease-out),
+      color var(--duration-fast) var(--ease-out);
+  }
+
+  .nav-contact:hover,
+  .nav-contact:focus-visible {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+
+  .nav-contact .nav-link-text::after {
+    display: none;
+  }
+
+  .nav-contact:hover .pulse-dot,
+  .nav-contact:hover .pulse-dot::after,
+  .nav-contact:focus-visible .pulse-dot,
+  .nav-contact:focus-visible .pulse-dot::after {
+    background: var(--color-bg);
   }
 
   /* ---------- Pulsing dot ----------
