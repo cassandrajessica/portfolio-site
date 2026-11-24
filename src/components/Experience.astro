@@ -1,0 +1,137 @@
+---
+/* ==========================================================================
+   Experience.astro: work history list
+   - "EXPERIENCE" heading, then one row per job: role, company, status
+   - The company column starts on the same grid line as the "About" nav link
+   - Rows rise into view one after another (data-reveal="stagger")
+   ========================================================================== */
+
+// ---------- Content: edit the rows here ----------
+// Each job is one line. Add, remove or reorder freely.
+const jobs = [
+  { company: "Finders Marketing", role: "Web Developer & Technical SEO", status: "Now" },
+  { company: "Freebirds Media", role: "Web Designer & Developer", status: "Ongoing" },
+  { company: "Internship", role: "Web Development Intern", status: "Where it started" },
+];
+---
+
+<section class="experience" id="experience">
+  <h2 class="experience-heading">Experience</h2>
+
+  <ol class="experience-list" data-reveal="stagger">
+    {
+      jobs.map((job) => (
+        <li class="job">
+          <span class="job-role">{job.role}</span>
+          <span class="job-company">{job.company}</span>
+          <span class="job-status label">{job.status}</span>
+        </li>
+      ))
+    }
+  </ol>
+</section>
+
+<style>
+  .experience {
+    padding-bottom: var(--section-space);
+  }
+
+  /* ---------- Heading ---------- */
+  .experience-heading {
+    padding-inline: var(--gutter);
+    margin-bottom: var(--space-6);
+    font-size: var(--text-h2);
+  }
+
+  /* ---------- Rows ----------
+     Each row uses the same columns as the background grid
+     (--grid-columns in global.css), so the company can start right on a
+     grid line, just like the nav links. To move it, change --second-column.
+     Every item is pinned to row 1 (grid-row: 1) so they always share one
+     line, whatever order they're in the HTML. */
+  .job {
+    --second-column: 3;
+
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--grid-columns), 1fr);
+    align-items: baseline;
+    padding-block: var(--space-6);
+  }
+
+  /* Divider line between rows, inset to the page margins */
+  .job::after {
+    content: "";
+    position: absolute;
+    left: var(--gutter);
+    right: var(--gutter);
+    bottom: 0;
+    height: 1px;
+    background: var(--color-line);
+  }
+
+  /* A matching line above the first row */
+  .job:first-child::before {
+    content: "";
+    position: absolute;
+    left: var(--gutter);
+    right: var(--gutter);
+    top: 0;
+    height: 1px;
+    background: var(--color-line);
+  }
+
+  /* Role: first column, the main text of each row */
+  .job-role {
+    grid-row: 1;
+    grid-column: 1 / var(--second-column); /* fills the columns before the company */
+    padding-left: var(--gutter);
+    font-size: var(--text-h3);
+  }
+
+  /* Company: second column, smaller and muted */
+  .job-company {
+    grid-row: 1;
+    grid-column: var(--second-column) / -2; /* from its grid line up to the last column */
+    padding-left: var(--space-3); /* same small gap from the grid line as the nav links */
+    font-size: var(--text-small);
+    color: var(--color-muted);
+  }
+
+  .job-status {
+    grid-row: 1;
+    grid-column: -2 / -1; /* the last column */
+    justify-self: end;
+    padding-right: var(--gutter);
+    color: var(--color-ink);
+    white-space: nowrap;
+  }
+
+  /* ---------- Mobile (under 768px) ----------
+     PROPOSAL, pending your approval: each row stacks, with the role on
+     top and the company and status on one smaller line below it. */
+  @media (max-width: 767px) {
+    .job {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      column-gap: var(--space-3);
+      row-gap: var(--space-1);
+      padding-inline: var(--gutter);
+    }
+
+    .job-role {
+      flex-basis: 100%; /* takes the whole first line */
+      padding-left: 0;
+    }
+
+    .job-company {
+      flex: 1; /* takes the remaining space, pushing the status right */
+      padding-left: 0;
+    }
+
+    .job-status {
+      padding-right: 0;
+    }
+  }
+</style>
