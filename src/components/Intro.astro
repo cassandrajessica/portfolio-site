@@ -4,7 +4,8 @@
    - A big uppercase Anton statement, first line indented to a grid line,
      ending in a red phrase
    - A smaller paragraph of body copy below it
-   - As you scroll through, the statement's words darken one by one
+   - When the statement scrolls into view, its lines slide up into place
+     one after another, from behind an invisible edge
    ========================================================================== */
 
 // ---------- Copy: edit the text here ----------
@@ -16,29 +17,13 @@ const highlight = "magna aliqua.";
 
 const body =
   "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.";
-
-// Each word becomes its own <span> so the script can darken them one by one
-const statementWords = statement.split(" ");
-const highlightWords = highlight.split(" ");
 ---
 
 <section class="intro" id="intro">
   <h2 class="intro-statement" data-intro-statement>
-    {
-      statementWords.map((word) => (
-        <>
-          <span class="word" data-word>{word}</span>{" "}
-        </>
-      ))
-    }
-    {
-      highlightWords.map((word, i) => (
-        <>
-          <span class="word accent" data-word>{word}</span>
-          {i < highlightWords.length - 1 && " "}
-        </>
-      ))
-    }
+    <span class="intro-indent" aria-hidden="true"></span>{`${statement} `}<span
+      class="accent">{highlight}</span
+    >
   </h2>
 
   <p class="intro-body" data-reveal>{body}</p>
@@ -62,8 +47,15 @@ const highlightWords = highlight.split(" ");
   .intro-statement {
     font-size: var(--text-statement);
     line-height: var(--leading-heading);
-    text-indent: var(--to-grid-line); /* first line starts at a grid line */
     text-wrap: wrap; /* overrides the global "balance", which would fight the indent */
+  }
+
+  /* An empty spacer at the start pushes the first line in to a grid line.
+     (A spacer instead of text-indent: text-indent gets inherited by the
+     line-splitting script's word wrappers and throws off its measurements.) */
+  .intro-indent {
+    display: inline-block;
+    width: var(--to-grid-line);
   }
 
   /* ---------- Body copy ---------- */
@@ -91,40 +83,46 @@ const highlightWords = highlight.split(" ");
 <script>
   import { gsap } from "gsap";
   import { ScrollTrigger } from "gsap/ScrollTrigger";
+  import { SplitText } from "gsap/SplitText";
 
-  gsap.registerPlugin(ScrollTrigger);
+  gsap.registerPlugin(ScrollTrigger, SplitText);
 
   const statement = document.querySelector<HTMLElement>("[data-intro-statement]");
-  const words = statement
-    ? Array.from(statement.querySelectorAll<HTMLElement>("[data-word]"))
-    : [];
 
   const prefersReducedMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)"
   ).matches;
 
   // Settings: tweak these to taste
-  const START_OPACITY = 0.15; // how faded the words are before you reach them
+  const DURATION = 1;     // seconds for each line to slide up
+  const STAGGER = 0.12;   // seconds between one line and the next
+  const START = "top 80%"; // begins when the statement's top is 80% down the screen
 
-  // With reduced motion, the words simply stay fully visible
-  if (statement && words.length && !prefersReducedMotion) {
-    // Word-by-word highlight, tied to scrolling ("scrub"). As the statement
-    // moves from the lower part of the screen to the upper part, each word
-    // darkens in turn. Scrolling back up fades them again.
-    gsap.fromTo(
-      words,
-      { opacity: START_OPACITY },
-      {
-        opacity: 1,
-        ease: "none",
-        stagger: 0.1,
-        scrollTrigger: {
-          trigger: statement,
-          start: "top 80%", // starts when the top of the statement is 80% down the screen
-          end: "bottom 45%", // finishes when its bottom reaches 45% down the screen
-          scrub: 0.5, // follows the scroll, with half a second of smoothing
+  // With reduced motion, the statement simply stays in place
+  if (statement && !prefersReducedMotion) {
+    // Wait until Anton has loaded before splitting, so the lines are
+    // measured with the real font
+    document.fonts.load(`1em "Anton"`).then(() => {
+      SplitText.create(statement, {
+        type: "lines",
+        mask: "lines", // wraps each line in a clipped box, so it can slide up from behind an edge
+        autoSplit: true, // re-splits when the window resizes and lines re-wrap
+        onSplit(self) {
+          // Returning the animation lets SplitText keep it in sync if the
+          // lines are re-split later
+          return gsap.from(self.lines, {
+            yPercent: 110,
+            duration: DURATION,
+            ease: "power4.out",
+            stagger: STAGGER,
+            scrollTrigger: {
+              trigger: statement,
+              start: START,
+              once: true, // plays the first time only
+            },
+          });
         },
-      }
-    );
+      });
+    });
   }
 </script>
