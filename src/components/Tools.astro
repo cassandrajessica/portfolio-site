@@ -1,0 +1,257 @@
+---
+/* ==========================================================================
+   Tools.astro: the tools I work with, as a Mac-style dock
+   - "TOOLS" heading, then a row of rounded tiles with each tool's logo
+   - Mouse users: tiles magnify as the cursor moves along the row (the one
+     under the cursor grows most, its neighbors a little), and the hovered
+     tool's name pops up in a bubble above it
+   - Touch screens: no magnification, labels show under every tile
+   ========================================================================== */
+
+// ---------- Content: edit the tools here ----------
+// One line per tool, in the order they appear.
+const tools = [
+  "Webflow",
+  "WordPress",
+  "Google Analytics",
+  "Tag Manager",
+  "Figma",
+  "Claude",
+];
+
+// ---------- Logos ----------
+// Drop a logo into src/assets/tools/ named after the tool, in lowercase with
+// dashes for spaces (Google Analytics -> google-analytics.svg). SVG is best;
+// PNG and WEBP work too. Tools without a logo file show their initials.
+const logoFiles = import.meta.glob<{ default: ImageMetadata }>(
+  "../assets/tools/*.{svg,png,webp}",
+  { eager: true }
+);
+
+const slugify = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+const findLogo = (name: string) => {
+  const slug = slugify(name);
+  const match = Object.entries(logoFiles).find(([path]) =>
+    path.split("/").pop()?.startsWith(`${slug}.`)
+  );
+  return match?.[1].default;
+};
+
+const initials = (name: string) =>
+  name
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2);
+
+const toolList = tools.map((name) => ({ name, logo: findLogo(name) }));
+---
+
+<section class="tools" id="tools">
+  <h2 class="tools-heading" data-text-reveal>Tools</h2>
+
+  <ul class="dock" data-dock data-reveal="stagger">
+    {
+      toolList.map((tool) => (
+        <li class="tool" data-tool>
+          <div class="tool-icon" data-tool-icon>
+            {tool.logo ? (
+              <img src={tool.logo.src} alt="" loading="lazy" />
+            ) : (
+              <span class="tool-initials" aria-hidden="true">
+                {initials(tool.name)}
+              </span>
+            )}
+          </div>
+          <span class="tool-label">{tool.name}</span>
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<style>
+  .tools {
+    padding-inline: var(--gutter);
+    padding-bottom: var(--section-space);
+
+    /* Dock sizes: change these to resize the tiles */
+    --tile: 3.5rem;      /* resting size (56px) */
+    --tile-max: 6rem;    /* size of the tile right under the cursor (96px) */
+  }
+
+  /* ---------- Heading ---------- */
+  .tools-heading {
+    margin-bottom: var(--space-6);
+    font-size: var(--text-h2);
+  }
+
+  /* ---------- Dock ----------
+     Tiles sit on a shared bottom line and grow upward, like the macOS
+     dock. The top padding reserves room for the biggest tile plus its
+     label bubble, so the page doesn't jump when the tiles grow. */
+  .dock {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    min-height: calc(var(--tile-max) + 2.5rem);
+  }
+
+  .tool {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ---------- Tile ---------- */
+  .tool-icon {
+    width: var(--tile);
+    height: var(--tile);
+    display: grid;
+    place-items: center;
+    padding: 18%;
+    border-radius: 22%; /* scales with the tile, like app icons */
+    background: color-mix(in srgb, var(--color-bg) 40%, white);
+    border: 1px solid var(--color-line);
+  }
+
+  .tool-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  /* Placeholder until a logo is added */
+  .tool-initials {
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  /* ---------- Label ----------
+     Mouse users: a small charcoal bubble above the hovered tile.
+     It's always in the page for screen readers, just invisible until
+     hovered. */
+  .tool-label {
+    position: absolute;
+    bottom: calc(100% + var(--space-2));
+    left: 50%;
+    translate: -50% 4px;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-pill);
+    background: var(--color-ink);
+    color: var(--color-bg);
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      opacity var(--duration-fast) var(--ease-out),
+      translate var(--duration-fast) var(--ease-out);
+  }
+
+  .tool:hover .tool-label {
+    opacity: 1;
+    translate: -50% 0;
+  }
+
+  /* ---------- Touch screens ----------
+     No hover, so the labels sit under each tile permanently instead */
+  @media (hover: none) {
+    .dock {
+      min-height: 0;
+      align-items: flex-start;
+    }
+
+    .tool-label {
+      position: static;
+      translate: none;
+      margin-top: var(--space-2);
+      padding: 0;
+      background: none;
+      color: var(--color-muted);
+      opacity: 1;
+    }
+  }
+
+  /* ---------- Mobile (under 768px) ----------
+     PROPOSAL, pending your approval: tiles in rows of 3, with labels
+     under each one. */
+  @media (max-width: 767px) {
+    .dock {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      row-gap: var(--space-5);
+      justify-items: center;
+    }
+  }
+</style>
+
+<script>
+  import { gsap } from "gsap";
+
+  const dock = document.querySelector<HTMLElement>("[data-dock]");
+  const icons = dock
+    ? Array.from(dock.querySelectorAll<HTMLElement>("[data-tool-icon]"))
+    : [];
+
+  const hasMouse = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  // Settings: tweak these to taste
+  const RANGE = 150;  // pixels from the cursor where tiles start growing
+  const SPEED = 0.25; // seconds for a tile to catch up to its new size
+
+  if (dock && icons.length && hasMouse && !prefersReducedMotion) {
+    // Read the resting and maximum sizes from the CSS variables, in pixels
+    const styles = getComputedStyle(dock);
+    const remToPx = (value: string) =>
+      parseFloat(value) * parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const baseSize = remToPx(styles.getPropertyValue("--tile"));
+    const maxSize = remToPx(styles.getPropertyValue("--tile-max"));
+
+    // Smooth "resize to" functions for each tile's width and height
+    const resizers = icons.map((icon) => ({
+      width: gsap.quickTo(icon, "width", { duration: SPEED, ease: "power3.out" }),
+      height: gsap.quickTo(icon, "height", { duration: SPEED, ease: "power3.out" }),
+    }));
+
+    // Where each tile's center is right now. Measured fresh on every mouse
+    // move: as tiles grow they push their neighbors along, so the live
+    // positions are what keep the biggest tile right under the cursor.
+    const centerOf = (icon: HTMLElement) => {
+      const box = icon.getBoundingClientRect();
+      return box.left + box.width / 2;
+    };
+
+    const resizeAll = (size: (i: number) => number) =>
+      resizers.forEach((r, i) => {
+        r.width(size(i));
+        r.height(size(i));
+      });
+
+    dock.addEventListener("mousemove", (event) => {
+      const centers = icons.map(centerOf);
+      resizeAll((i) => {
+        // How close the cursor is to this tile: 1 = right on it, 0 = out of range.
+        // A cosine curve makes the growth taper off smoothly, like the Mac dock.
+        const distance = Math.abs(event.clientX - centers[i]);
+        const closeness = Math.cos(Math.min(distance / RANGE, 1) * (Math.PI / 2));
+        return baseSize + (maxSize - baseSize) * closeness;
+      });
+    });
+
+    // Leaving the dock shrinks every tile back to its resting size
+    dock.addEventListener("mouseleave", () => resizeAll(() => baseSize));
+  }
+</script>
