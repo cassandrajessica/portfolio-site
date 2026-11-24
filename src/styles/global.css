@@ -86,6 +86,17 @@
   --duration-base: 300ms;
   --duration-slow: 600ms;
 
+  /* Film grain (shared by the page background and the nav, so both always
+     match). Adjust the grain here and it updates everywhere.
+     - baseFrequency inside the URL: higher = finer grain
+     - --grain-size: smaller = finer grain
+     - --grain-opacity: strength
+     - --grain-speed: flicker speed (higher = slower) */
+  --grain-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-size: 200px;
+  --grain-opacity: 0.6;
+  --grain-speed: 0.8s;
+
   /* Stacking order, so overlapping layers never fight */
   --z-background: -1;
   --z-content: 1;
@@ -246,7 +257,28 @@ p {
 }
 
 /* --------------------------------------------------------------------------
-   6. Accessibility
+   6. Film grain flicker
+   Shared animation for the grain layers. Each keyframe is a new position;
+   steps(1) in the animation makes the grain JUMP between them, so it
+   flickers in place like old film. Values stay under 200px so they never
+   pass the -200px inset on the grain layers.
+   -------------------------------------------------------------------------- */
+@keyframes grain {
+  0%   { transform: translate(0, 0); }
+  10%  { transform: translate(-37px, -73px); }
+  20%  { transform: translate(-113px, 41px); }
+  30%  { transform: translate(59px, -151px); }
+  40%  { transform: translate(-29px, 147px); }
+  50%  { transform: translate(-121px, 67px); }
+  60%  { transform: translate(109px, 13px); }
+  70%  { transform: translate(7px, 97px); }
+  80%  { transform: translate(23px, 163px); }
+  90%  { transform: translate(-83px, 61px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* --------------------------------------------------------------------------
+   7. Accessibility
    -------------------------------------------------------------------------- */
 
 /* Visible outline for keyboard users only (mouse clicks won't show it) */

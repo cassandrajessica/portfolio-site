@@ -1,0 +1,282 @@
+---
+/* ==========================================================================
+   Nav.astro: site header and navigation
+   - "Cj" logo on the left, links lined up with the background grid lines
+   - Hides when you scroll down, slides back when you scroll up
+   - Red pulsing dot before Contact signals "available for work"
+   - Includes a "Skip to content" link for keyboard users
+   ========================================================================== */
+
+// The links, kept in one list so adding or renaming one is a one-line change.
+// "pulse" adds the red dot.
+const links = [
+  { label: "About", href: "/#about", className: "nav-about" },
+  { label: "Work", href: "/#work", className: "nav-work" },
+  { label: "Contact", href: "/#contact", className: "nav-contact", pulse: true },
+];
+---
+
+<!-- Hidden until a keyboard user presses Tab, then lets them jump past the
+     nav straight to the page content -->
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header" data-nav>
+  <nav class="nav" aria-label="Main">
+    <a class="nav-logo" href="/" aria-label="Cj Lehman-Vo, home">Cj</a>
+
+    {
+      links.map((link) => (
+        <a class:list={["nav-link", link.className]} href={link.href}>
+          {link.pulse && <span class="pulse-dot" aria-hidden="true" />}
+          <span class="nav-link-text">{link.label}</span>
+        </a>
+      ))
+    }
+  </nav>
+</header>
+
+<style>
+  /* ---------- Skip link ---------- */
+  .skip-link {
+    position: fixed;
+    top: var(--space-3);
+    left: var(--space-3);
+    z-index: calc(var(--z-nav) + 1);
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-ink);
+    color: var(--color-bg);
+    font-size: var(--text-small);
+    border-radius: var(--radius-pill);
+    transform: translateY(-200%); /* parked off screen */
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  .skip-link:focus-visible {
+    transform: translateY(0);
+  }
+
+  /* ---------- Header bar ---------- */
+  .site-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--z-nav);
+    /* Transparent border at the top of the page, so the border below can
+       fade in without the bar shifting by 1px */
+    border-bottom: 1px solid transparent;
+    transition:
+      transform var(--duration-base) var(--ease-out),
+      border-color var(--duration-base) var(--ease-out);
+  }
+
+  /* Once you've scrolled away from the top, the bar gets:
+     - a solid cream background, so page content doesn't show through
+     - the same grid lines as the page background. Both the header and
+       the background grid start at the left edge of the screen and use
+       the same column count, so the lines line up exactly.
+     - a solid bottom border, so it reads as a bar when it slides back.
+       Swap the color for var(--color-ink) for a darker line. */
+  .site-header.is-scrolled {
+    background-color: var(--color-bg);
+    background-image: linear-gradient(
+      to right,
+      var(--color-line) 1px,
+      transparent 1px
+    );
+    background-size: calc(100% / var(--grid-columns)) 100%;
+    border-bottom-color: var(--color-muted);
+  }
+
+  /* The header's own copy of the page grain. Same image, size, strength,
+     blend and flicker (all shared from global.css), so it matches the page
+     without having to sit on top of your content.
+     overflow: hidden keeps the oversized grain layer inside the bar. */
+  .site-header {
+    overflow: hidden;
+  }
+
+  .site-header::before {
+    content: "";
+    position: absolute;
+    inset: -200px;
+    z-index: 0;
+    pointer-events: none;
+    background-image: var(--grain-image);
+    background-size: var(--grain-size) var(--grain-size);
+    mix-blend-mode: multiply;
+    animation: grain var(--grain-speed) steps(1) infinite;
+    opacity: 0; /* off at the top of the page, where the header is transparent */
+    transition: opacity var(--duration-base) var(--ease-out);
+  }
+
+  .site-header.is-scrolled::before {
+    opacity: var(--grain-opacity);
+  }
+
+  /* Hidden state: slides the bar up and out of view */
+  .site-header.is-hidden {
+    transform: translateY(-100%);
+  }
+
+  /* ---------- Layout ----------
+     The nav uses the same number of columns as the background grid
+     (--grid-columns in global.css), so each link can start right at a
+     grid line. To move a link, change which column it starts in below. */
+  .nav {
+    --about-column: 3;
+    --work-column: 5;
+
+    position: relative;
+    z-index: 1; /* keeps the links above the header's grain layer */
+    display: grid;
+    grid-template-columns: repeat(var(--grid-columns), 1fr);
+    align-items: center;
+    height: 4.5rem;
+  }
+
+  /* ---------- Logo ---------- */
+  .nav-logo {
+    grid-column: 1;
+    padding-left: var(--gutter);
+    font-family: var(--font-display);
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--color-accent);
+  }
+
+  /* ---------- Links ---------- */
+  .nav-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    justify-self: start;
+    padding-left: var(--space-3); /* small gap from the grid line */
+    font-size: var(--text-small);
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .nav-about {
+    grid-column: var(--about-column);
+  }
+
+  .nav-work {
+    grid-column: var(--work-column);
+  }
+
+  .nav-contact {
+    grid-column: -2 / -1; /* the last column */
+    justify-self: end;
+    padding-right: var(--gutter);
+  }
+
+  /* Underline that slides in from the left on hover.
+     It sits under the text only (not the dot or padding). */
+  .nav-link-text {
+    position: relative;
+  }
+
+  .nav-link-text::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 1px;
+    background: currentColor; /* matches the text color, so it's red on hover */
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--duration-base) var(--ease-out);
+  }
+
+  .nav-link:hover,
+  .nav-link:focus-visible {
+    color: var(--color-accent);
+  }
+
+  .nav-link:hover .nav-link-text::after,
+  .nav-link:focus-visible .nav-link-text::after {
+    transform: scaleX(1);
+  }
+
+  /* ---------- Pulsing dot ----------
+     A solid red dot, plus a ring (::after) that grows and fades out on a
+     loop, like a "live" indicator. */
+  .pulse-dot {
+    position: relative;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-accent);
+  }
+
+  .pulse-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--color-accent);
+    animation: pulse 2s var(--ease-out) infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+    100% {
+      transform: scale(3);
+      opacity: 0;
+    }
+  }
+</style>
+
+<script>
+  /* Hide on scroll down, reveal on scroll up */
+  const header = document.querySelector<HTMLElement>("[data-nav]");
+
+  if (header) {
+    let lastY = window.scrollY;
+    let ticking = false;
+
+    const SHOW_AT_TOP = 80; // always visible within this many pixels of the top
+    const MIN_DELTA = 6;    // ignore tiny scroll jitters
+
+    const update = () => {
+      const y = window.scrollY;
+      const delta = y - lastY;
+
+      // See-through background once you've left the very top
+      header.classList.toggle("is-scrolled", y > 10);
+
+      if (y < SHOW_AT_TOP) {
+        header.classList.remove("is-hidden");
+      } else if (Math.abs(delta) > MIN_DELTA) {
+        // Scrolling down hides it, scrolling up shows it
+        header.classList.toggle("is-hidden", delta > 0);
+      }
+
+      lastY = y;
+      ticking = false;
+    };
+
+    // requestAnimationFrame limits updates to once per screen refresh,
+    // which keeps scrolling smooth
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (!ticking) {
+          requestAnimationFrame(update);
+          ticking = true;
+        }
+      },
+      { passive: true }
+    );
+
+    // Keyboard users tabbing into the nav should always be able to see it
+    header.addEventListener("focusin", () => header.classList.remove("is-hidden"));
+
+    update();
+  }
+</script>
