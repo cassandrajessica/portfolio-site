@@ -1,42 +1,26 @@
 ---
 /* ==========================================================================
    index.astro: the homepage (yoursite.com/)
-   For now this is a test page to confirm the layout, fonts, colors, grid
-   and grain all work. We'll replace the test content with real sections.
+   Sections are added here in page order as we build them.
    ========================================================================== */
 import Base from "../layouts/Base.astro";
+import Hero from "../components/Hero.astro";
 ---
 
 <Base>
-  <section class="container test">
-    <p class="label">(00) Layout test</p>
+  <Hero />
 
-    <h1 class="display test-heading">
-      <span class="accent">Hi, I'm Cj.</span>
-      <br />
-      Web &amp; App Developer
-    </h1>
-
-    <p>
-      This paragraph is Geist. The heading is Anton, the label above is Geist
-      Mono, and you should see faint vertical grid lines and a subtle grain
-      across the cream background.
-    </p>
-
-    <p class="muted">This line uses the muted gray.</p>
+  <!-- TEMPORARY placeholder so "Scroll to explore" has somewhere to go and
+       the page is tall enough to test the nav hiding on scroll.
+       Replaced by the Intro section next. -->
+  <section id="intro" class="container placeholder">
+    <p class="label">(01) Intro goes here</p>
   </section>
 </Base>
 
 <style>
-  .test {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-5);
+  .placeholder {
+    min-height: 120vh;
     padding-block: var(--section-space);
-    min-height: 250vh; /* temporary: extra height to test the nav hiding on scroll */
-  }
-
-  .test-heading {
-    font-size: var(--text-hero);
   }
 </style>

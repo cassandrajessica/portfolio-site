@@ -1,0 +1,556 @@
+---
+/* ==========================================================================
+   Hero.astro: the first screen of the homepage
+   - "HI, I'M CJ." stays still in red
+   - The headline below cycles through three roles. Each holds for a
+     moment, then its letters slide up out of view one after another while
+     the next role's letters slide up from below in the same wave.
+   - Tagline on the right, "Scroll to explore" link at the bottom
+   - Hovering "CJ*" swaps the cursor for a small rounded photo of Cj that
+     follows the mouse (mouse and trackpad only)
+   - A waving hand pops out of the asterisk a few times, with a
+     "* hover to say hi!" note, to hint at the photo effect
+   - On phones and tablets: "* tap to say hi!", and tapping the name shows
+     the photo over it for a moment
+   ========================================================================== */
+
+import { Image } from "astro:assets";
+import waveHand from "../assets/wave-hand.png";
+
+// The cursor photo: drop an image named "cursor-photo" into src/assets/
+// (.jpg, .jpeg, .png, .webp or .avif) and it's picked up automatically.
+// Until then, a placeholder square shows instead.
+const photoFiles = import.meta.glob<{ default: ImageMetadata }>(
+  "../assets/cursor-photo.{jpg,jpeg,png,webp,avif}",
+  { eager: true }
+);
+const cursorPhoto = Object.values(photoFiles)[0]?.default;
+
+// The roles that cycle in the headline. Each role is split into two lines,
+// matching the Figma. Edit the wording here.
+const roles = [
+  ["Web & App", "Developer"],
+  ["Automating", "Workflows"],
+];
+
+// Plain-text version for search engines and screen readers
+const rolesText = roles.map((lines) => lines.join(" ")).join(", ");
+---
+
+<section class="hero" id="top">
+  <div class="hero-content">
+    <h1 class="hero-heading">
+      <span class="hero-greeting"
+        >Hi, I'm <span class="hero-name" data-photo-trigger
+          >Cj<span class="hero-asterisk" aria-hidden="true"
+            >*<span class="wave-hand" data-wave-hand
+              ><Image src={waveHand} alt="" width={160} loading="eager" /></span
+            ></span
+          ></span
+        ></span
+      >
+
+      <!-- Read by search engines and screen readers instead of the
+           animated letters below -->
+      <span class="sr-only">{rolesText}</span>
+
+      <!-- The animated roles. aria-hidden because the line above already
+           gives screen readers the full text. All three roles are stacked
+           in the same spot, and the script decides which one shows. -->
+      <span class="hero-roles" aria-hidden="true" data-hero-roles>
+        {
+          roles.map((lines) => (
+            <span class="role" data-role>
+              {lines.map((line) => (
+                <span class="role-line">
+                  {[...line].map((char) => (
+                    <span class="char" data-char>
+                      {char}
+                    </span>
+                  ))}
+                </span>
+              ))}
+            </span>
+          ))
+        }
+      </span>
+    </h1>
+
+    <p class="hero-tagline">
+      {"{{"} i build sites and systems<br />
+      that help teams move faster {"}}"}
+    </p>
+  </div>
+
+  <a class="hero-scroll label" href="#intro">Scroll to explore ↓</a>
+
+  <!-- Hint that pops out next to the waving hand. It lives outside the
+       <h1> so search engines don't read it as part of the headline; the
+       script positions it beside the hand. Mouse and trackpad users only,
+       since phones can't hover. -->
+  <p class="hero-note label" data-hover-note>* hover to say hi!</p>
+
+  <!-- The photo that replaces the cursor while hovering "CJ*".
+       Decorative, so screen readers skip it (empty alt). Astro resizes and
+       compresses the photo automatically. -->
+  <div class="cursor-photo" aria-hidden="true" data-cursor-photo>
+    {
+      cursorPhoto ? (
+        <Image src={cursorPhoto} alt="" width={320} loading="eager" />
+      ) : (
+        <div class="cursor-photo-placeholder">Photo</div>
+      )
+    }
+  </div>
+</section>
+
+<style>
+  /* ---------- Layout ---------- */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100svh; /* on phones, accounts for the browser's address bar */
+    display: flex;
+    align-items: center;
+    padding-inline: var(--gutter);
+    padding-top: 4.5rem;     /* room for the nav */
+    padding-bottom: 12vh;    /* nudges the headline slightly above center, as in the Figma */
+  }
+
+  /* Headline on the left, tagline on the right, both sitting on the same
+     bottom line */
+  .hero-content {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: var(--space-6);
+  }
+
+  /* ---------- Headline ---------- */
+  .hero-heading {
+    display: flex;
+    flex-direction: column;
+    line-height: var(--leading-display);
+  }
+
+  .hero-greeting {
+    font-size: clamp(1.75rem, 5vw, 4.5rem);
+    color: var(--color-accent);
+  }
+
+  .hero-roles {
+    display: grid; /* stacks all three roles in the same spot */
+    font-size: clamp(3.5rem, 12.5vw, 11rem);
+    color: var(--color-ink);
+  }
+
+  .role {
+    grid-area: 1 / 1; /* every role sits in the same grid cell */
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Each line is a clipped window: letters outside it are invisible, so
+     they appear to slide in and out through the line itself */
+  .role-line {
+    display: block;
+    overflow: clip;
+    white-space: pre; /* keeps the spaces between words */
+  }
+
+  .char {
+    display: inline-block; /* lets each letter move on its own */
+    will-change: transform;
+  }
+
+  /* Before the script runs, only the first role shows */
+  .role:not(:first-child) {
+    visibility: hidden;
+  }
+
+  /* ---------- Name hover ---------- */
+  /* Only on devices with a mouse or trackpad: the normal cursor disappears
+     over the name, and the photo takes its place */
+  @media (hover: hover) and (pointer: fine) {
+    .hero-name {
+      cursor: none;
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+
+    /* Slightly deeper red while hovered, so it's clear something happened */
+    .hero-name:hover {
+      color: color-mix(in srgb, var(--color-accent) 80%, black);
+    }
+  }
+
+  /* On touch screens, tapping the name shows the photo. iPhones only send
+     taps to elements that look clickable, so this gives it a pointer
+     cursor. tap-highlight removes the gray flash on tap. */
+  @media (hover: none) {
+    .hero-name {
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
+
+  /* ---------- Waving hand ----------
+     Sits just above and to the right of the asterisk, hidden until the
+     script pops it out. Its size is in "em", so it scales with the
+     greeting text. It pivots from the bottom-left corner (the wrist),
+     so rotating it looks like a wave. */
+  .hero-asterisk {
+    position: relative;
+  }
+
+  .wave-hand {
+    display: block;
+    position: absolute;
+    left: 80%;
+    bottom: 55%;
+    width: 0.75em;
+    transform-origin: 20% 90%; /* the wrist */
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .wave-hand :global(img) {
+    width: 100%;
+    height: auto;
+  }
+
+  /* ---------- Hover note ----------
+     Positioned next to the hand by the script (it sets left and top, and
+     shifts it up by half its height so it's centered on the hand).
+     Hidden until the hand pops out. */
+  .hero-note {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    white-space: nowrap;
+    color: var(--color-ink);
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  /* ---------- Cursor photo ----------
+     Fixed to the screen and moved by the script to wherever the mouse is.
+     Starts invisible and shrunk, then fades and scales in on hover. */
+  .cursor-photo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: var(--z-cursor);
+    width: 8.5rem;   /* about 136px; change both to resize the photo */
+    height: 8.5rem;
+    border-radius: 1rem;
+    overflow: hidden;
+    pointer-events: none; /* never blocks the mouse */
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* The photo always fills the square, whatever its original shape.
+     object-fit: cover crops the edges instead of stretching the image.
+     object-position picks which part stays in view (center by default;
+     try "center top" if your face is near the top of the photo). */
+  .cursor-photo :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  /* Placeholder until you have a photo: a muted square with a label */
+  .cursor-photo-placeholder {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    background: var(--color-muted);
+    color: var(--color-bg);
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+
+  /* ---------- Tagline ---------- */
+  .hero-tagline {
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+    line-height: 1.5;
+    text-align: right;
+    color: var(--color-ink);
+    padding-bottom: 0.6em; /* lines it up with the bottom of the headline letters */
+  }
+
+  /* ---------- Scroll link ---------- */
+  .hero-scroll {
+    position: absolute;
+    left: 50%;
+    bottom: 10vh;
+    transform: translateX(-50%);
+    color: var(--color-ink);
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .hero-scroll:hover,
+  .hero-scroll:focus-visible {
+    color: var(--color-accent);
+  }
+
+  /* ---------- Mobile (under 768px) ----------
+     PROPOSAL, pending your approval: the tagline moves under the headline
+     and aligns left. */
+  @media (max-width: 767px) {
+    .hero-content {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-tagline {
+      text-align: left;
+      padding-bottom: 0;
+    }
+  }
+</style>
+
+<script>
+  import { gsap } from "gsap";
+
+  const container = document.querySelector<HTMLElement>("[data-hero-roles]");
+  const roles = container
+    ? Array.from(container.querySelectorAll<HTMLElement>("[data-role]"))
+    : [];
+
+  // Timing settings: tweak these to taste
+  const HOLD = 2.5;      // seconds each role stays on screen
+  const DURATION = 0.8;  // seconds for each letter's slide
+  const STAGGER = 0.025; // seconds between one letter and the next
+  // Both the leaving and arriving letters use the same easing curve, so each
+  // pair moves in lockstep: as one slides out the top of the line, its
+  // replacement slides in right behind it, with no overlap.
+  const EASE = "power3.out";
+
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  if (roles.length > 1) {
+    const charsOf = (role: HTMLElement) =>
+      Array.from(role.querySelectorAll<HTMLElement>("[data-char]"));
+
+    let current = 0;
+
+    if (prefersReducedMotion) {
+      // Reduced motion: no sliding letters, just a gentle crossfade
+      roles.forEach((role, i) => {
+        role.style.visibility = "visible";
+        gsap.set(role, { opacity: i === 0 ? 1 : 0 });
+      });
+
+      const fade = () => {
+        const next = (current + 1) % roles.length;
+        gsap.to(roles[current], { opacity: 0, duration: 0.6 });
+        gsap.to(roles[next], { opacity: 1, duration: 0.6 });
+        current = next;
+        gsap.delayedCall(HOLD, fade);
+      };
+      gsap.delayedCall(HOLD, fade);
+    } else {
+      // Park every letter of the hidden roles just below its line
+      roles.forEach((role, i) => {
+        if (i !== 0) gsap.set(charsOf(role), { yPercent: 110 });
+        role.style.visibility = "visible";
+      });
+
+      const swap = () => {
+        const next = (current + 1) % roles.length;
+        const outgoing = charsOf(roles[current]);
+        const incoming = charsOf(roles[next]);
+
+        gsap
+          .timeline({
+            onComplete: () => {
+              // Reset the old role below its line, ready for its next turn
+              gsap.set(outgoing, { yPercent: 110 });
+              current = next;
+              gsap.delayedCall(HOLD, swap);
+            },
+          })
+          // Current letters slide up and out, one after another...
+          .to(outgoing, {
+            yPercent: -110,
+            duration: DURATION,
+            ease: EASE,
+            stagger: STAGGER,
+          })
+          // ...while the next role's letters slide up from below in the
+          // same wave ("<" starts this at the same time as the step above)
+          .fromTo(
+            incoming,
+            { yPercent: 110 },
+            {
+              yPercent: 0,
+              duration: DURATION,
+              ease: EASE,
+              stagger: STAGGER,
+            },
+            "<"
+          );
+      };
+
+      gsap.delayedCall(HOLD, swap);
+    }
+  }
+
+  /* ---------- Cursor photo on name hover ---------- */
+  const trigger = document.querySelector<HTMLElement>("[data-photo-trigger]");
+  const photo = document.querySelector<HTMLElement>("[data-cursor-photo]");
+  const hasMouse = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+  if (trigger && photo && hasMouse) {
+    // Center the photo on the mouse, start it small
+    gsap.set(photo, { xPercent: -50, yPercent: -50, scale: 0.6 });
+
+    // quickTo creates fast "move to" functions. The short duration gives
+    // the photo a slight, smooth lag behind the mouse, so it feels alive.
+    // With reduced motion, it follows instantly instead.
+    const followTime = prefersReducedMotion ? 0 : 0.35;
+    const moveX = gsap.quickTo(photo, "x", { duration: followTime, ease: "power3.out" });
+    const moveY = gsap.quickTo(photo, "y", { duration: followTime, ease: "power3.out" });
+
+    const follow = (event: MouseEvent) => {
+      moveX(event.clientX);
+      moveY(event.clientY);
+    };
+
+    trigger.addEventListener("mouseenter", (event) => {
+      // Jump straight to the mouse first, so it doesn't fly in from
+      // wherever it was last
+      gsap.set(photo, { x: event.clientX, y: event.clientY });
+      window.addEventListener("mousemove", follow);
+      gsap.to(photo, {
+        autoAlpha: 1, // fades in and makes it visible
+        scale: 1,
+        duration: prefersReducedMotion ? 0.01 : 0.35,
+        ease: "power3.out",
+      });
+    });
+
+    trigger.addEventListener("mouseleave", () => {
+      gsap.to(photo, {
+        autoAlpha: 0, // fades out, then hides it
+        scale: prefersReducedMotion ? 1 : 0.6,
+        duration: prefersReducedMotion ? 0.01 : 0.25,
+        ease: "power2.in",
+        onComplete: () => window.removeEventListener("mousemove", follow),
+      });
+    });
+  } else if (trigger && photo) {
+    // Touch screens: tapping the name shows the photo centered over the
+    // name for a couple of seconds, then it fades away
+    const SHOW_FOR = 2; // seconds the photo stays up after a tap
+
+    gsap.set(photo, { xPercent: -50, yPercent: -50, scale: 0.6 });
+
+    trigger.addEventListener("click", () => {
+      const box = trigger.getBoundingClientRect();
+      gsap.killTweensOf(photo); // a second tap restarts it cleanly
+      gsap.set(photo, { x: box.left + box.width / 2, y: box.top + box.height / 2 });
+      gsap
+        .timeline()
+        .to(photo, {
+          autoAlpha: 1,
+          scale: 1,
+          duration: prefersReducedMotion ? 0.01 : 0.35,
+          ease: "back.out(1.6)",
+        })
+        .to(photo, {
+          autoAlpha: 0,
+          scale: prefersReducedMotion ? 1 : 0.6,
+          duration: prefersReducedMotion ? 0.01 : 0.3,
+          ease: "power2.in",
+          delay: SHOW_FOR,
+        });
+    });
+  }
+
+  /* ---------- Waving hand + hover note ---------- */
+  const hand = document.querySelector<HTMLElement>("[data-wave-hand]");
+  const note = document.querySelector<HTMLElement>("[data-hover-note]");
+
+  // Settings: tweak these to taste
+  const WAVE_TIMES = 3;      // how many times the hand pops out in total
+  const WAVE_GAP = 5.5;      // seconds between pop-outs
+  const FIRST_WAVE = 1.5;    // seconds after page load before the first one
+
+  if (trigger && hand) {
+    let waves: gsap.core.Timeline | null = null;
+
+    // Phones and tablets can't hover, so the note asks for a tap instead
+    if (note && !hasMouse) note.textContent = "* tap to say hi!";
+
+    // Places the note just to the right of the hand, centered on it.
+    // offsetLeft/offsetTop measure the hand's resting spot (ignoring its
+    // scale animation), relative to the asterisk.
+    const hero = trigger.closest<HTMLElement>(".hero");
+    const asterisk = hand.parentElement;
+    const placeNote = () => {
+      if (!note || !hero || !asterisk) return;
+      const heroBox = hero.getBoundingClientRect();
+      const starBox = asterisk.getBoundingClientRect();
+      note.style.left = `${starBox.left - heroBox.left + hand.offsetLeft + hand.offsetWidth + 10}px`;
+      note.style.top = `${starBox.top - heroBox.top + hand.offsetTop + hand.offsetHeight / 2}px`;
+    };
+    if (note) gsap.set(note, { yPercent: -50 }); // centers it on the hand
+    placeNote();
+    window.addEventListener("resize", placeNote);
+    document.fonts.ready.then(placeNote); // re-measure once Anton has loaded
+
+    if (!prefersReducedMotion) {
+      gsap.set(hand, { scale: 0, rotation: -20, opacity: 1 });
+
+      // One pop-out: spring up, wave three times, tuck back in.
+      // repeat + repeatDelay play it WAVE_TIMES times, WAVE_GAP apart.
+      waves = gsap
+        .timeline({
+          delay: FIRST_WAVE,
+          repeat: WAVE_TIMES - 1,
+          repeatDelay: WAVE_GAP,
+        })
+        .to(hand, { scale: 1, rotation: 0, duration: 0.45, ease: "back.out(2.2)" })
+        // The note slides out from the hand just after it pops up
+        .fromTo(
+          note,
+          { autoAlpha: 0, x: -8 },
+          { autoAlpha: 1, x: 0, duration: 0.35, ease: "power3.out" },
+          "<0.15"
+        )
+        .to(hand, { rotation: 16, duration: 0.16, ease: "sine.inOut" })
+        .to(hand, { rotation: -10, duration: 0.16, ease: "sine.inOut" })
+        .to(hand, { rotation: 16, duration: 0.16, ease: "sine.inOut" })
+        .to(hand, { rotation: -10, duration: 0.16, ease: "sine.inOut" })
+        .to(hand, { rotation: 0, duration: 0.16, ease: "sine.inOut" })
+        // Hold the note a moment longer than the wave, then tuck both away
+        .to(hand, { scale: 0, rotation: -20, duration: 0.3, ease: "back.in(1.8)" }, "+=0.6")
+        .to(note, { autoAlpha: 0, x: -8, duration: 0.25, ease: "power2.in" }, "<");
+    } else if (note) {
+      // Reduced motion: no waving, so the note just stays visible
+      gsap.set(note, { autoAlpha: 1 });
+    }
+
+    // The first time someone hovers (or taps) the name, the hint has done
+    // its job: the hand tucks away for good and the note fades out.
+    trigger.addEventListener(
+      hasMouse ? "mouseenter" : "click",
+      () => {
+        waves?.kill();
+        gsap.to(hand, { scale: 0, duration: 0.2, ease: "power2.in" });
+        if (note) gsap.to(note, { autoAlpha: 0, duration: 0.4, ease: "power2.out" });
+      },
+      { once: true }
+    );
+  }
+</script>
