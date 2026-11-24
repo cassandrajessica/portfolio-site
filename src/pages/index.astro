@@ -5,22 +5,21 @@
    ========================================================================== */
 import Base from "../layouts/Base.astro";
 import Hero from "../components/Hero.astro";
+import Intro from "../components/Intro.astro";
 ---
 
 <Base>
   <Hero />
 
-  <!-- TEMPORARY placeholder so "Scroll to explore" has somewhere to go and
-       the page is tall enough to test the nav hiding on scroll.
-       Replaced by the Intro section next. -->
-  <section id="intro" class="container placeholder">
-    <p class="label">(01) Intro goes here</p>
-  </section>
+  <Intro />
+
+  <!-- TEMPORARY spacer so the page is tall enough to scroll the Intro all
+       the way through. Remove once the Work section is added. -->
+  <div class="spacer" aria-hidden="true"></div>
 </Base>
 
 <style>
-  .placeholder {
-    min-height: 120vh;
-    padding-block: var(--section-space);
+  .spacer {
+    height: 80vh;
   }
 </style>

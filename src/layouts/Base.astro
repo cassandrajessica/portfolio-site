@@ -76,8 +76,13 @@ const imageURL = new URL(image, Astro.site);
 
     <!-- Footer will go here once we build it -->
 
-    <!-- Film dust, fibers and scratches drawn on the canvas (see src/scripts/film-effects.ts) -->
+    <!-- Site-wide scripts:
+         - smooth-scroll: gliding mouse-wheel scrolling (Lenis)
+         - reveal: anything with data-reveal rises into view on scroll
+         - film-effects: film dust, fibers and scratches on the canvas -->
     <script>
+      import "../scripts/smooth-scroll.ts";
+      import "../scripts/reveal.ts";
       import "../scripts/film-effects.ts";
     </script>
   </body>
