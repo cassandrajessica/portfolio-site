@@ -1,0 +1,299 @@
+---
+/* ==========================================================================
+   work/[slug].astro: the case study page template
+   Astro builds one page per project file in src/content/projects/:
+   project-01.md becomes yoursite.com/work/project-01/
+   The square brackets in the filename mean "fill this in for each project".
+
+   This is a simple starting layout (there's no case study design in the
+   Figma yet): title, summary, cover media, Overview, the gallery of
+   images/video, then the rest of the write-up from the Markdown body.
+   ========================================================================== */
+import { getCollection, render } from "astro:content";
+import { Image } from "astro:assets";
+import Base from "../../layouts/Base.astro";
+
+// Tells Astro which pages to build: one per project that isn't a draft
+export async function getStaticPaths() {
+  const projects = await getCollection("projects", ({ data }) => !data.draft);
+  return projects.map((project) => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+const { title, category, year, summary, overview, gallery, cover, video, liveUrl } =
+  project.data;
+
+// While you're working locally, an empty gallery shows a placeholder so you
+// can see where media goes. On the live site, an empty gallery is skipped.
+const showGalleryPlaceholder = gallery.length === 0 && import.meta.env.DEV;
+
+// Turns the Markdown body into HTML
+const { Content } = await render(project);
+---
+
+<Base title={`${title} | Cj Lehman-Vo`} description={summary}>
+  <article class="case">
+    <header class="case-header">
+      <a class="case-back label" href="/#work" data-back-to-work>← Back to work</a>
+      <p class="label">{category} · {year}</p>
+      <h1 class="case-title" data-text-reveal>{title}</h1>
+      <p class="case-summary" data-reveal>{summary}</p>
+      {
+        liveUrl && (
+          <a class="case-live" href={liveUrl} target="_blank" rel="noopener">
+            Visit the live site ↗
+          </a>
+        )
+      }
+    </header>
+
+    {
+      (video || cover) && (
+        <div class="case-media" data-reveal>
+          {video ? (
+            <video src={video} poster={cover?.src} autoplay muted loop playsinline />
+          ) : (
+            cover && (
+              <Image
+                src={cover}
+                alt={`${title} preview`}
+                widths={[800, 1400, 2000]}
+                sizes="100vw"
+              />
+            )
+          )}
+        </div>
+      )
+    }
+
+    <section class="case-section" data-reveal>
+      <h2>Overview</h2>
+      <p>{overview}</p>
+    </section>
+
+    {
+      gallery.length > 0 && (
+        <div class:list={["case-gallery", { "is-grid": gallery.length > 1 }]} data-reveal="stagger">
+          {gallery.map((item) => (
+            <figure class="gallery-item">
+              {item.video ? (
+                item.controls ? (
+                  // A demo: plays on click, with controls and sound
+                  <video src={item.video} controls playsinline preload="metadata" />
+                ) : (
+                  // A silent looping clip
+                  <video src={item.video} autoplay muted loop playsinline data-loop-video />
+                )
+              ) : (
+                item.image && (
+                  <Image
+                    src={item.image}
+                    alt={item.alt}
+                    widths={[600, 1000, 1600]}
+                    sizes={gallery.length > 1 ? "(max-width: 767px) 100vw, 50vw" : "100vw"}
+                  />
+                )
+              )}
+              {item.caption && <figcaption class="label">{item.caption}</figcaption>}
+            </figure>
+          ))}
+        </div>
+      )
+    }
+
+    {
+      showGalleryPlaceholder && (
+        <div class="case-gallery">
+          <div class="gallery-placeholder label">
+            Images / video demo go here (add a "gallery" to this project's file)
+          </div>
+        </div>
+      )
+    }
+
+    <div class="case-body" data-reveal>
+      <Content />
+    </div>
+  </article>
+</Base>
+
+<script>
+  /* "Back to work" returns you to exactly where you were.
+     If you came here from another page on this site (like clicking a card
+     on the homepage), it acts like the browser's Back button, so the
+     browser restores your previous scroll position. If you arrived from
+     somewhere else (a Google result, a shared link), it falls back to the
+     link's normal behavior: the Work section on the homepage. */
+  const backLink = document.querySelector<HTMLAnchorElement>("[data-back-to-work]");
+
+  // Reduced motion: stop silent looping videos (demos with controls are
+  // unaffected, since they only play when clicked)
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.querySelectorAll<HTMLVideoElement>("[data-loop-video]").forEach((clip) => {
+      clip.removeAttribute("autoplay");
+      clip.pause();
+    });
+  }
+
+  backLink?.addEventListener("click", (event) => {
+    const cameFromThisSite =
+      document.referrer && new URL(document.referrer).origin === window.location.origin;
+
+    if (cameFromThisSite && window.history.length > 1) {
+      event.preventDefault();
+      window.history.back();
+    }
+  });
+</script>
+
+<style>
+  .case {
+    padding: 9rem var(--gutter) var(--section-space);
+  }
+
+  /* ---------- Header ---------- */
+  .case-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-bottom: var(--space-8);
+  }
+
+  .case-back {
+    color: var(--color-ink);
+    margin-bottom: var(--space-5);
+  }
+
+  .case-back:hover,
+  .case-back:focus-visible {
+    color: var(--color-accent);
+  }
+
+  .case-title {
+    font-size: var(--text-section);
+    line-height: var(--leading-display);
+  }
+
+  .case-summary {
+    font-size: var(--text-h3);
+    max-width: 40ch;
+  }
+
+  .case-live {
+    align-self: flex-start;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-pill);
+    background: var(--color-ink);
+    color: var(--color-bg);
+    font-size: var(--text-small);
+    transition: background-color var(--duration-fast) var(--ease-out);
+  }
+
+  .case-live:hover,
+  .case-live:focus-visible {
+    background: var(--color-accent);
+  }
+
+  /* ---------- Media ---------- */
+  .case-media {
+    margin-bottom: var(--space-9);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+
+  .case-media :global(img),
+  .case-media video {
+    width: 100%;
+    height: auto;
+  }
+
+  /* ---------- Overview ---------- */
+  .case-section {
+    max-width: 42rem;
+  }
+
+  .case-section h2 {
+    font-size: var(--text-h2);
+    margin-bottom: var(--space-4);
+  }
+
+  /* ---------- Gallery ----------
+     One item: full width. Two or more: a two-column grid (one column on
+     phones). */
+  .case-gallery {
+    margin-block: var(--space-8);
+  }
+
+  .case-gallery.is-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-5);
+  }
+
+  .gallery-item {
+    margin: 0;
+  }
+
+  .gallery-item :global(img),
+  .gallery-item video {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-card);
+  }
+
+  .gallery-item figcaption {
+    margin-top: var(--space-2);
+  }
+
+  .gallery-placeholder {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 16 / 9;
+    padding: var(--space-5);
+    text-align: center;
+    border: 1px dashed var(--color-muted);
+    border-radius: var(--radius-card);
+  }
+
+  @media (max-width: 767px) {
+    .case-gallery.is-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ---------- Body ----------
+     Styles for the Markdown content. :global() is needed because the
+     Markdown is rendered into this page, not written in it. */
+  .case-body {
+    max-width: 42rem;
+  }
+
+  .case-body :global(h2) {
+    font-size: var(--text-h2);
+    margin-top: var(--space-8);
+    margin-bottom: var(--space-4);
+  }
+
+  .case-body :global(p) {
+    margin-bottom: var(--space-5);
+  }
+
+  .case-body :global(ul) {
+    list-style: disc;
+    padding-left: var(--space-5);
+    margin-bottom: var(--space-5);
+  }
+
+  .case-body :global(li) {
+    margin-bottom: var(--space-2);
+  }
+
+  .case-body :global(a) {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+</style>

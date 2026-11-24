@@ -57,6 +57,69 @@ const imageURL = new URL(image, Astro.site);
     <!-- Browser UI color on mobile (matches the cream background) -->
     <meta name="theme-color" content="#f3f3e9" />
 
+    <!-- Paints the cream background from the very first frame, before any
+         CSS file arrives, so there's never a white flash between pages.
+         is:inline keeps it right here in the <head>, exactly as written. -->
+    <style is:inline>
+      html {
+        background-color: #f3f3e9;
+        color-scheme: light;
+      }
+    </style>
+
+    <!-- Starts downloading the grain texture right away, so it's ready
+         the moment the page appears -->
+    <link rel="preload" href="/images/grain.webp" as="image" type="image/webp" />
+
+    <!-- Marks the page as "animations will run" (JavaScript on, and the
+         visitor hasn't asked for reduced motion). global.css uses this to
+         hide animated elements from the very first frame, so they don't
+         flash visible before their animation starts. Without this class,
+         everything simply shows normally. -->
+    <script is:inline>
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        document.documentElement.classList.add("motion-ok");
+      }
+    </script>
+
+    <!-- Page transitions: wait until the main content has loaded before
+         showing the new page, so the slide never starts on a half-built page -->
+    <link rel="expect" href="#main" blocking="render" />
+
+    <!-- Page transition direction. Labels each page change as "open"
+         (going into a case study) or "close" (leaving one), so the CSS in
+         global.css (section 7) can slide the case study up or down.
+         is:inline keeps it in the <head> as-is, so it's ready before the
+         page appears. Browsers that don't support this just skip it. -->
+    <script is:inline>
+      (function () {
+        var isCaseStudy = function (url) {
+          return /^\/work\/[^/]+/.test(new URL(url).pathname);
+        };
+        var typeFor = function (fromUrl, toUrl) {
+          if (!fromUrl || !toUrl) return null;
+          if (isCaseStudy(toUrl) && !isCaseStudy(fromUrl)) return "open";
+          if (isCaseStudy(fromUrl) && !isCaseStudy(toUrl)) return "close";
+          return null;
+        };
+
+        // On the page you're leaving
+        window.addEventListener("pageswap", function (event) {
+          if (!event.viewTransition || !event.activation) return;
+          var type = typeFor(location.href, event.activation.entry.url);
+          if (type) event.viewTransition.types.add(type);
+        });
+
+        // On the page you're arriving at
+        window.addEventListener("pagereveal", function (event) {
+          var nav = window.navigation;
+          if (!event.viewTransition || !nav || !nav.activation || !nav.activation.from) return;
+          var type = typeFor(nav.activation.from.url, nav.activation.entry.url);
+          if (type) event.viewTransition.types.add(type);
+        });
+      })();
+    </script>
+
     <!-- TODO: add a favicon to /public and link it here, e.g.
          <link rel="icon" type="image/svg+xml" href="/favicon.svg" /> -->
   </head>
@@ -127,7 +190,8 @@ const imageURL = new URL(image, Astro.site);
     background-image: var(--grain-image);
     background-size: var(--grain-size) var(--grain-size);
     opacity: var(--grain-opacity);
-    mix-blend-mode: multiply; /* darkens the cream slightly, like paper texture */
+    /* No blend mode needed: the grain image is dark specks on a transparent
+       background, so it darkens the cream on its own (see global.css) */
 
     /* Flicker: the keyframes live in global.css so the nav can share them.
        Visitors with "Reduce motion" turned on get static grain. */

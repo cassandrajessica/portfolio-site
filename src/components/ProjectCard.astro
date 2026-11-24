@@ -1,0 +1,125 @@
+---
+/* ==========================================================================
+   ProjectCard.astro: one project card in the Work section
+   - Media: a looping video, a cover image, or a placeholder box
+   - Below it: the title in Anton, and "Category · Year" in mono
+   - The whole card links to the project's case study page
+   ========================================================================== */
+import { Image } from "astro:assets";
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+  project: CollectionEntry<"projects">;
+}
+
+const { project } = Astro.props;
+const { title, category, year, cover, video } = project.data;
+const href = `/work/${project.id}/`;
+---
+
+<a class="card" href={href} data-card>
+  <div class="card-media">
+    {
+      video ? (
+        // Muted, looping and "playsinline" so it autoplays on phones too.
+        // The cover (if any) shows while the video loads.
+        <video
+          src={video}
+          poster={cover?.src}
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="metadata"
+          aria-hidden="true"
+          data-card-video
+        />
+      ) : cover ? (
+        <Image
+          src={cover}
+          alt=""
+          widths={[480, 800, 1200]}
+          sizes="(max-width: 767px) 100vw, 40vw"
+        />
+      ) : (
+        <div class="card-placeholder label">Project image / video</div>
+      )
+    }
+  </div>
+
+  <div class="card-caption">
+    <h3 class="card-title">{title}</h3>
+    <p class="card-meta label">{category} · {year}</p>
+  </div>
+</a>
+
+<style>
+  .card {
+    display: block;
+  }
+
+  /* ---------- Media ----------
+     A fixed shape (4:5, slightly tall) so every card lines up, whatever
+     the image or video's original size. object-fit: cover fills the frame
+     and crops the edges instead of stretching. */
+  .card-media {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-muted) 18%, var(--color-bg));
+    transition: transform var(--duration-slow) var(--ease-out);
+  }
+
+  .card-media :global(img),
+  .card-media video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .card-placeholder {
+    display: grid;
+    place-items: center;
+    height: 100%;
+  }
+
+  /* Dark layer that fades in on hover, so the media darkens slightly */
+  .card-media::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--color-ink);
+    opacity: 0;
+    transition: opacity var(--duration-base) var(--ease-out);
+  }
+
+  /* ---------- Hover ---------- */
+  .card:hover .card-media,
+  .card:focus-visible .card-media {
+    transform: scale(1.03);
+  }
+
+  .card:hover .card-media::after,
+  .card:focus-visible .card-media::after {
+    opacity: 0.15;
+  }
+
+  /* ---------- Caption ---------- */
+  .card-caption {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+  }
+
+  .card-title {
+    font-size: var(--text-h3);
+  }
+
+  .card-meta {
+    color: var(--color-ink);
+    white-space: nowrap;
+  }
+</style>

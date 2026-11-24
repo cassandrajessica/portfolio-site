@@ -41,6 +41,11 @@ if (elements.length && !prefersReducedMotion) {
         mask: "lines", // wraps each line in a clipped box it can slide up through
         autoSplit: true, // re-splits when the window resizes and lines re-wrap
         onSplit(self) {
+          // The lines are about to be parked below their edges, so it's now
+          // safe to un-hide the element (see "Waiting to animate" in
+          // global.css)
+          gsap.set(el, { visibility: "visible" });
+
           // Returning the animation lets SplitText keep it in sync if the
           // lines are re-split later
           return gsap.from(self.lines, {

@@ -45,5 +45,10 @@ if (!prefersReducedMotion) {
         once: true, // animates the first time only, then stays put
       },
     });
+
+    // The animation above has already set the starting state (faded and
+    // lowered), so it's now safe to un-hide the element. See "Waiting to
+    // animate" in global.css.
+    gsap.set(targets, { visibility: "visible" });
   });
 }

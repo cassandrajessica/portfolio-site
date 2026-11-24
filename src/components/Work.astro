@@ -1,0 +1,289 @@
+---
+/* ==========================================================================
+   Work.astro: "Explore my work" project showcase
+   - A backdrop (the big "EXPLORE MY WORK" and "Scroll")
+     stays pinned in place while the project cards scroll up over it
+   - As the cards come in, the big text fades to about 15% and blurs
+   - Cards sit in two staggered columns, each rising in as it enters, with
+     a subtle parallax (each column moves at a slightly different speed)
+   - Mouse users: hovering a card hides the cursor and shows a "[ Open ]"
+     pill that follows the mouse
+   Projects come from src/content/projects/ (one Markdown file each).
+   ========================================================================== */
+import { getCollection } from "astro:content";
+import ProjectCard from "./ProjectCard.astro";
+
+// Every project that isn't a draft, sorted by its "order" field
+const projects = (
+  await getCollection("projects", ({ data }) => !data.draft)
+).sort((a, b) => a.data.order - b.data.order);
+---
+
+<section class="work" id="work">
+  <!-- Pinned backdrop -->
+  <div class="work-backdrop">
+    <div class="work-backdrop-text" data-work-fade>
+      <h2 class="work-heading">
+        <span>Explore my</span>
+        <span class="accent">work</span>
+      </h2>
+    </div>
+
+    <p class="work-scroll label">Scroll ↓</p>
+  </div>
+
+  <!-- Cards, scrolling up over the backdrop -->
+  <div class="work-cards" data-work-cards>
+    {
+      projects.map((project) => (
+        <div class="card-slot" data-card-slot>
+          <div data-card-rise>
+            <ProjectCard project={project} />
+          </div>
+        </div>
+      ))
+    }
+  </div>
+
+  <!-- The "[ Open ]" pill that replaces the cursor over cards -->
+  <div class="open-cursor label" aria-hidden="true" data-open-cursor>[ Open ]</div>
+</section>
+
+<style>
+  .work {
+    position: relative;
+  }
+
+  /* ---------- Pinned backdrop ----------
+     position: sticky keeps it in place for as long as the Work section is
+     on screen, so the cards slide up over it. It's one screen tall. */
+  .work-backdrop {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100svh;
+    display: grid;
+    place-items: center;
+    padding-inline: var(--gutter);
+    z-index: 0;
+  }
+
+  .work-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: var(--text-section);
+    line-height: var(--leading-display);
+    text-align: center;
+  }
+
+  .work-scroll {
+    position: absolute;
+    bottom: 10vh;
+    left: 50%;
+    translate: -50% 0;
+    color: var(--color-ink);
+  }
+
+  /* ---------- Cards ----------
+     Two columns, starting right after the backdrop, so "EXPLORE MY WORK"
+     fills the screen on its own before any card arrives. Cards in the
+     right column start lower, which creates the staggered look. */
+  .work-cards {
+    position: relative;
+    z-index: 1; /* above the backdrop */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--space-9);
+    row-gap: var(--space-10);
+    padding-inline: var(--gutter);
+    padding-bottom: var(--section-space);
+  }
+
+  .card-slot {
+    width: min(100%, 30rem);
+  }
+
+  /* Left column cards sit a little in from the edge */
+  .card-slot:nth-child(odd) {
+    justify-self: center;
+  }
+
+  /* Right column cards sit further right and start lower */
+  .card-slot:nth-child(even) {
+    justify-self: end;
+    margin-top: 40vh;
+  }
+
+  /* ---------- "[ Open ]" cursor ----------
+     Fixed to the screen and moved by the script to the mouse position.
+     Hidden until a card is hovered. */
+  .open-cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: var(--z-cursor);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+    color: var(--color-bg);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* Mouse users: hide the normal cursor over cards (the pill replaces it) */
+  @media (hover: hover) and (pointer: fine) {
+    .work-cards :global(.card) {
+      cursor: none;
+    }
+  }
+
+  /* ---------- Mobile (under 768px) ----------
+     PROPOSAL, pending your approval: one column of cards, no stagger.
+     The backdrop stays pinned behind them. */
+  @media (max-width: 767px) {
+    .work-cards {
+      grid-template-columns: 1fr;
+      row-gap: var(--space-8);
+    }
+
+    .card-slot,
+    .card-slot:nth-child(odd),
+    .card-slot:nth-child(even) {
+      width: 100%;
+      justify-self: stretch;
+      margin-top: 0;
+    }
+  }
+</style>
+
+<script>
+  import { gsap } from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const cardsArea = document.querySelector<HTMLElement>("[data-work-cards]");
+  const fadeText = document.querySelector<HTMLElement>("[data-work-fade]");
+  const slots = Array.from(document.querySelectorAll<HTMLElement>("[data-card-slot]"));
+  const risers = Array.from(document.querySelectorAll<HTMLElement>("[data-card-rise]"));
+  const cursor = document.querySelector<HTMLElement>("[data-open-cursor]");
+  const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-work-cards] [data-card]"));
+
+  // Settings: tweak these to taste
+  const FADE_TO = 0.15;     // how faded "EXPLORE MY WORK" gets
+  const BLUR_TO = 16;       // how blurry it gets, in pixels
+  const RISE = 60;          // pixels each card rises as it enters
+  const PARALLAX = [60, 140]; // how far left / right column cards drift up while scrolling, in pixels
+
+  // gsap.matchMedia runs each setup only when its conditions match, and
+  // cleans it up automatically if they stop matching (e.g. on resize)
+  const mm = gsap.matchMedia();
+
+  mm.add(
+    {
+      motionOK: "(prefers-reduced-motion: no-preference)",
+      wide: "(min-width: 768px)",
+      mouse: "(hover: hover) and (pointer: fine)",
+    },
+    (context) => {
+      const { motionOK, wide, mouse } = context.conditions as {
+        motionOK: boolean;
+        wide: boolean;
+        mouse: boolean;
+      };
+
+      if (!motionOK || !cardsArea || !fadeText) return;
+
+      // 1. Backdrop text fades (and, for mouse users, blurs) as the cards
+      //    scroll over it. "scrub" ties it to the scroll position.
+      gsap.fromTo(
+        fadeText,
+        { opacity: 1, filter: "blur(0px)" },
+        {
+          opacity: FADE_TO,
+          filter: mouse ? `blur(${BLUR_TO}px)` : "blur(0px)",
+          ease: "none",
+          // Starts once the first cards are well into view (their top
+          // at 70% down the screen), finishes as they near the top
+          scrollTrigger: {
+            trigger: cardsArea,
+            start: "top 70%",
+            end: "top 10%",
+            scrub: true,
+          },
+        }
+      );
+
+      // 2. Each card fades in and rises as it enters the screen (once)
+      risers.forEach((riser) => {
+        gsap.from(riser, {
+          y: RISE,
+          opacity: 0,
+          duration: 1,
+          ease: "power3.out",
+          scrollTrigger: { trigger: riser, start: "top 92%", once: true },
+        });
+        // Starting state is set, so un-hide it (see "Waiting to animate"
+        // in global.css)
+        gsap.set(riser, { visibility: "visible" });
+      });
+
+      // 3. Parallax (wider screens only): left and right column cards drift
+      //    up at slightly different speeds while you scroll past them
+      if (wide) {
+        slots.forEach((slot, i) => {
+          gsap.to(slot, {
+            y: -PARALLAX[i % 2],
+            ease: "none",
+            scrollTrigger: {
+              trigger: slot,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+            },
+          });
+        });
+      }
+    }
+  );
+
+  // 4. "[ Open ]" cursor for mouse users
+  const hasMouse = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  if (cursor && cards.length && hasMouse) {
+    gsap.set(cursor, { xPercent: -50, yPercent: -50, scale: 0.6 });
+
+    // Follows the mouse with a little easing (instantly with reduced motion)
+    const lag = prefersReducedMotion ? 0 : 0.3;
+    const moveX = gsap.quickTo(cursor, "x", { duration: lag, ease: "power3.out" });
+    const moveY = gsap.quickTo(cursor, "y", { duration: lag, ease: "power3.out" });
+
+    window.addEventListener("mousemove", (event) => {
+      moveX(event.clientX);
+      moveY(event.clientY);
+    });
+
+    cards.forEach((card) => {
+      card.addEventListener("mouseenter", (event) => {
+        gsap.set(cursor, { x: event.clientX, y: event.clientY });
+        gsap.to(cursor, { autoAlpha: 1, scale: 1, duration: 0.25, ease: "power3.out" });
+      });
+      card.addEventListener("mouseleave", () => {
+        gsap.to(cursor, { autoAlpha: 0, scale: 0.6, duration: 0.2, ease: "power2.in" });
+      });
+    });
+  }
+
+  // 5. Reduced motion: stop looping card videos (the poster image shows)
+  if (prefersReducedMotion) {
+    document.querySelectorAll<HTMLVideoElement>("[data-card-video]").forEach((video) => {
+      video.removeAttribute("autoplay");
+      video.pause();
+    });
+  }
+</script>
