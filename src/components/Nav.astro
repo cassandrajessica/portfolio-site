@@ -3,17 +3,22 @@
    Nav.astro: site header and navigation
    - "Cj" logo on the left, links lined up with the background grid lines
    - Hides when you scroll down, slides back when you scroll up
-   - Red pulsing dot before Contact signals "available for work"
+   - Contact is a rounded charcoal tab with a pulsing "available" dot
+   - Mobile (under 768px): Contact stays visible, About and Work move into
+     a full-page menu of big Anton headings, opened by a red hamburger
+     that turns into a red X
    - Includes a "Skip to content" link for keyboard users
    ========================================================================== */
 
 // The links, kept in one list so adding or renaming one is a one-line change.
-// "pulse" adds the red dot.
+// "pulse" adds the red dot. "inMenu" means the link moves into the mobile menu.
 const links = [
-  { label: "About", href: "/#about", className: "nav-about" },
-  { label: "Work", href: "/#work", className: "nav-work" },
+  { label: "About", href: "/#about", className: "nav-about", inMenu: true },
+  { label: "Work", href: "/#work", className: "nav-work", inMenu: true },
   { label: "Contact", href: "/#contact", className: "nav-contact", pulse: true },
 ];
+
+const menuLinks = links.filter((link) => link.inMenu);
 ---
 
 <!-- Hidden until a keyboard user presses Tab, then lets them jump past the
@@ -32,8 +37,40 @@ const links = [
         </a>
       ))
     }
+
+    <!-- Mobile only: opens and closes the menu panel. The three lines
+         animate into an X while the menu is open. -->
+    <button
+      class="menu-toggle"
+      type="button"
+      aria-expanded="false"
+      aria-controls="mobile-menu"
+      aria-label="Open menu"
+      data-menu-toggle
+    >
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+      <span class="menu-toggle-line" aria-hidden="true"></span>
+    </button>
   </nav>
 </header>
+
+<!-- Mobile menu panel. It sits outside the header so the header's grain
+     layer (which is clipped to the header) can't cut it off. "inert" makes
+     the links unreachable by keyboard and screen readers while it's closed. -->
+<div class="mobile-menu" id="mobile-menu" data-menu inert>
+  <ul class="mobile-menu-list">
+    {
+      menuLinks.map((link) => (
+        <li>
+          <a class="mobile-menu-link" href={link.href} data-menu-link>
+            {link.label}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</div>
 
 <style>
   /* ---------- Skip link ---------- */
@@ -41,7 +78,7 @@ const links = [
     position: fixed;
     top: var(--space-3);
     left: var(--space-3);
-    z-index: calc(var(--z-nav) + 1);
+    z-index: calc(var(--z-nav) + 2);
     padding: var(--space-2) var(--space-4);
     background: var(--color-ink);
     color: var(--color-bg);
@@ -62,6 +99,10 @@ const links = [
     left: 0;
     right: 0;
     z-index: var(--z-nav);
+    /* Keeps the oversized grain layer inside the bar. "clip" instead of
+       "hidden" so the browser can never scroll the bar sideways (with
+       "hidden", focusing the menu button could shift everything left). */
+    overflow: clip;
     /* Transparent border at the top of the page, so the border below can
        fade in without the bar shifting by 1px */
     border-bottom: 1px solid transparent;
@@ -70,14 +111,14 @@ const links = [
       border-color var(--duration-base) var(--ease-out);
   }
 
-  /* Once you've scrolled away from the top, the bar gets:
+  /* Once you've scrolled away from the top (or the mobile menu is open),
+     the bar gets:
      - a solid cream background, so page content doesn't show through
-     - the same grid lines as the page background. Both the header and
-       the background grid start at the left edge of the screen and use
-       the same column count, so the lines line up exactly.
-     - a solid bottom border, so it reads as a bar when it slides back.
+     - the same grid lines as the page background, lined up exactly
+     - a bottom border, so it reads as a bar when it slides back.
        Swap the color for var(--color-ink) for a darker line. */
-  .site-header.is-scrolled {
+  .site-header.is-scrolled,
+  .site-header.menu-open {
     background-color: var(--color-bg);
     background-image: linear-gradient(
       to right,
@@ -90,12 +131,7 @@ const links = [
 
   /* The header's own copy of the page grain. Same image, size, strength,
      blend and flicker (all shared from global.css), so it matches the page
-     without having to sit on top of your content.
-     overflow: hidden keeps the oversized grain layer inside the bar. */
-  .site-header {
-    overflow: hidden;
-  }
-
+     without having to sit on top of your content. */
   .site-header::before {
     content: "";
     position: absolute;
@@ -110,7 +146,8 @@ const links = [
     transition: opacity var(--duration-base) var(--ease-out);
   }
 
-  .site-header.is-scrolled::before {
+  .site-header.is-scrolled::before,
+  .site-header.menu-open::before {
     opacity: var(--grain-opacity);
   }
 
@@ -261,12 +298,200 @@ const links = [
       opacity: 0;
     }
   }
+
+  /* ---------- Hamburger / close button (mobile only) ---------- */
+  .menu-toggle {
+    display: none; /* shown in the mobile media query below */
+    position: relative;
+    flex-shrink: 0;
+    width: 2.75rem;  /* 44px: comfortable tap target */
+    height: 2.75rem;
+    margin-right: calc(var(--gutter) - 0.75rem); /* lines up the icon with the page edge */
+  }
+
+  /* Three red lines, stacked */
+  .menu-toggle-line {
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--color-accent);
+    transition:
+      transform var(--duration-base) var(--ease-out),
+      opacity var(--duration-fast) var(--ease-out);
+  }
+
+  .menu-toggle-line:nth-child(1) { top: calc(50% - 7px); }
+  .menu-toggle-line:nth-child(2) { top: calc(50% - 1px); }
+  .menu-toggle-line:nth-child(3) { top: calc(50% + 5px); }
+
+  /* Open state: the middle line fades out, and the top and bottom lines
+     meet in the middle and rotate into a red X */
+  .menu-toggle[aria-expanded="true"] .menu-toggle-line:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+  }
+
+  .menu-toggle[aria-expanded="true"] .menu-toggle-line:nth-child(2) {
+    opacity: 0;
+  }
+
+  .menu-toggle[aria-expanded="true"] .menu-toggle-line:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+
+  /* ---------- Mobile menu panel ---------- */
+  .mobile-menu {
+    display: none; /* shown in the mobile media query below */
+    position: fixed;
+    top: 4.5rem; /* directly under the header bar */
+    left: 0;
+    right: 0;
+    bottom: 0; /* stretches to the bottom of the screen: a full-page menu */
+    z-index: calc(var(--z-nav) - 1);
+    overflow: clip; /* keeps the panel's grain layer inside it, without making it scrollable */
+    padding-block: var(--space-6);
+
+    /* Same cream and grid lines as the page */
+    background-color: var(--color-bg);
+    background-image: linear-gradient(
+      to right,
+      var(--color-line) 1px,
+      transparent 1px
+    );
+    background-size: calc(100% / var(--grid-columns)) 100%;
+
+    /* Closed state: invisible, slightly raised, and not clickable */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-0.75rem);
+    transition:
+      opacity var(--duration-base) var(--ease-out),
+      transform var(--duration-base) var(--ease-out),
+      visibility 0s linear var(--duration-base); /* hide only after fading out */
+  }
+
+  .mobile-menu.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition:
+      opacity var(--duration-base) var(--ease-out),
+      transform var(--duration-base) var(--ease-out),
+      visibility 0s;
+  }
+
+  /* The panel's own grain, matching the page and header */
+  .mobile-menu::before {
+    content: "";
+    position: absolute;
+    inset: -200px;
+    pointer-events: none;
+    background-image: var(--grain-image);
+    background-size: var(--grain-size) var(--grain-size);
+    mix-blend-mode: multiply;
+    opacity: var(--grain-opacity);
+    animation: grain var(--grain-speed) steps(1) infinite;
+  }
+
+  .mobile-menu-list {
+    position: relative; /* sits above the grain layer */
+    padding-inline: var(--gutter);
+  }
+
+  /* Big uppercase Anton headings, like the rest of the site's headlines */
+  .mobile-menu-link {
+    display: block;
+    padding-block: var(--space-3);
+    border-bottom: 1px solid var(--color-line);
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 18vw, 6rem);
+    line-height: var(--leading-display);
+    letter-spacing: var(--tracking-display);
+    text-transform: uppercase;
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .mobile-menu-link:hover,
+  .mobile-menu-link:focus-visible {
+    color: var(--color-accent);
+  }
+
+  /* ---------- Mobile layout (under 768px) ----------
+     About and Work leave the bar and live in the menu panel instead.
+     The bar becomes: logo on the left, Contact tab + hamburger on the right. */
+  @media (max-width: 767px) {
+    .nav {
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    .nav-logo {
+      margin-right: auto; /* pushes everything else to the right */
+    }
+
+    .nav-about,
+    .nav-work {
+      display: none;
+    }
+
+    .nav-contact {
+      margin-right: 0;
+    }
+
+    .menu-toggle {
+      display: block;
+    }
+
+    .mobile-menu {
+      display: block;
+    }
+  }
 </style>
 
 <script>
-  /* Hide on scroll down, reveal on scroll up */
   const header = document.querySelector<HTMLElement>("[data-nav]");
+  const toggle = document.querySelector<HTMLButtonElement>("[data-menu-toggle]");
+  const menu = document.querySelector<HTMLElement>("[data-menu]");
 
+  /* ---------- Mobile menu ---------- */
+  const isMenuOpen = () => toggle?.getAttribute("aria-expanded") === "true";
+
+  const setMenu = (open: boolean) => {
+    if (!header || !toggle || !menu) return;
+
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    menu.classList.toggle("is-open", open);
+    menu.inert = !open; // closed menu links can't be tabbed to
+    header.classList.toggle("menu-open", open);
+    header.classList.remove("is-hidden"); // never hide the bar while toggling
+
+    // Stops the page behind the menu from scrolling while it's open
+    document.documentElement.style.overflow = open ? "hidden" : "";
+  };
+
+  toggle?.addEventListener("click", () => setMenu(!isMenuOpen()));
+
+  // Tapping a menu link closes the menu (the page then scrolls to the section)
+  document
+    .querySelectorAll("[data-menu-link]")
+    .forEach((link) => link.addEventListener("click", () => setMenu(false)));
+
+  // Escape closes the menu and puts focus back on the button
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && isMenuOpen()) {
+      setMenu(false);
+      toggle?.focus();
+    }
+  });
+
+  // If the screen is resized past the mobile breakpoint, close the menu
+  window.matchMedia("(min-width: 768px)").addEventListener("change", (event) => {
+    if (event.matches) setMenu(false);
+  });
+
+  /* ---------- Hide on scroll down, reveal on scroll up ---------- */
   if (header) {
     let lastY = window.scrollY;
     let ticking = false;
@@ -278,10 +503,10 @@ const links = [
       const y = window.scrollY;
       const delta = y - lastY;
 
-      // See-through background once you've left the very top
+      // Solid background once you've left the very top
       header.classList.toggle("is-scrolled", y > 10);
 
-      if (y < SHOW_AT_TOP) {
+      if (isMenuOpen() || y < SHOW_AT_TOP) {
         header.classList.remove("is-hidden");
       } else if (Math.abs(delta) > MIN_DELTA) {
         // Scrolling down hides it, scrolling up shows it
