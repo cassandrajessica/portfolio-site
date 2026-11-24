@@ -65,6 +65,7 @@ const imageURL = new URL(image, Astro.site);
          since they're purely decorative. -->
     <div class="bg-grid" aria-hidden="true"></div>
     <div class="bg-grain" aria-hidden="true"></div>
+    <canvas class="bg-film" aria-hidden="true"></canvas>
 
     <!-- Nav will go here once we build it -->
 
@@ -73,6 +74,11 @@ const imageURL = new URL(image, Astro.site);
     </main>
 
     <!-- Footer will go here once we build it -->
+
+    <!-- Film dust, fibers and scratches drawn on the canvas (see src/scripts/film-effects.ts) -->
+    <script>
+      import "../scripts/film-effects.ts";
+    </script>
   </body>
 </html>
 
@@ -80,7 +86,8 @@ const imageURL = new URL(image, Astro.site);
   /* Both background layers are fixed to the screen, sit behind all
      content, and ignore the mouse so they never block clicks. */
   .bg-grid,
-  .bg-grain {
+  .bg-grain,
+  .bg-film {
     position: fixed;
     inset: 0; /* shorthand for top/right/bottom/left: 0, so it fills the screen */
     z-index: var(--z-background);
@@ -140,6 +147,14 @@ const imageURL = new URL(image, Astro.site);
     80%  { transform: translate(23px, 163px); }
     90%  { transform: translate(-83px, 61px); }
     100% { transform: translate(0, 0); }
+  }
+
+  /* Film dust, fibers and scratches
+     A full-screen <canvas>. The script in src/scripts/film-effects.ts
+     draws the marks onto it about 10 times a second. */
+  .bg-film {
+    width: 100%;
+    height: 100%;
   }
 
   main {
