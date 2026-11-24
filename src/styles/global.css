@@ -22,13 +22,13 @@
 :root {
   /* Colors */
   --color-bg: #f3f3e9;      /* cream background */
-  --color-ink: #1c1b1a;     /* near-black: headings and body text */
-  --color-accent: #e33529;  /* red: highlights, buttons */
-  --color-muted: #6b6862;   /* gray: secondary text, labels */
+  --color-ink: #2b2825;     /* warm charcoal: headings and body text (was #1c1b1a) */
+  --color-accent: #cc4637;  /* muted brick red: highlights, buttons (was #e33529) */
+  --color-muted: #706b63;   /* warm gray: secondary text, labels (was #6b6862) */
 
   /* Translucent versions, for borders, dividers and the grid lines */
-  --color-line: rgb(107 104 98 / 0.18);
-  --color-line-strong: rgb(28 27 26 / 0.15);
+  --color-line: rgb(112 107 99 / 0.18);
+  --color-line-strong: rgb(43 40 37 / 0.15);
 
   /* Font families (each has fallbacks in case a font fails to load) */
   --font-display: "Anton", "Impact", "Arial Narrow", sans-serif;
