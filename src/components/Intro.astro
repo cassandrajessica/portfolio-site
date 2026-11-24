@@ -5,7 +5,7 @@
      ending in a red phrase
    - A smaller paragraph of body copy below it
    - When the statement scrolls into view, its lines slide up into place
-     one after another, from behind an invisible edge
+     one after another (data-text-reveal, see src/scripts/text-reveal.ts)
    ========================================================================== */
 
 // ---------- Copy: edit the text here ----------
@@ -20,7 +20,7 @@ const body =
 ---
 
 <section class="intro" id="intro">
-  <h2 class="intro-statement" data-intro-statement>
+  <h2 class="intro-statement" data-text-reveal>
     <span class="intro-indent" aria-hidden="true"></span>{`${statement} `}<span
       class="accent">{highlight}</span
     >
@@ -79,50 +79,3 @@ const body =
     }
   }
 </style>
-
-<script>
-  import { gsap } from "gsap";
-  import { ScrollTrigger } from "gsap/ScrollTrigger";
-  import { SplitText } from "gsap/SplitText";
-
-  gsap.registerPlugin(ScrollTrigger, SplitText);
-
-  const statement = document.querySelector<HTMLElement>("[data-intro-statement]");
-
-  const prefersReducedMotion = window.matchMedia(
-    "(prefers-reduced-motion: reduce)"
-  ).matches;
-
-  // Settings: tweak these to taste
-  const DURATION = 1;     // seconds for each line to slide up
-  const STAGGER = 0.12;   // seconds between one line and the next
-  const START = "top 80%"; // begins when the statement's top is 80% down the screen
-
-  // With reduced motion, the statement simply stays in place
-  if (statement && !prefersReducedMotion) {
-    // Wait until Anton has loaded before splitting, so the lines are
-    // measured with the real font
-    document.fonts.load(`1em "Anton"`).then(() => {
-      SplitText.create(statement, {
-        type: "lines",
-        mask: "lines", // wraps each line in a clipped box, so it can slide up from behind an edge
-        autoSplit: true, // re-splits when the window resizes and lines re-wrap
-        onSplit(self) {
-          // Returning the animation lets SplitText keep it in sync if the
-          // lines are re-split later
-          return gsap.from(self.lines, {
-            yPercent: 110,
-            duration: DURATION,
-            ease: "power4.out",
-            stagger: STAGGER,
-            scrollTrigger: {
-              trigger: statement,
-              start: START,
-              once: true, // plays the first time only
-            },
-          });
-        },
-      });
-    });
-  }
-</script>

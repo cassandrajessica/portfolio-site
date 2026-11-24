@@ -79,10 +79,12 @@ const imageURL = new URL(image, Astro.site);
     <!-- Site-wide scripts:
          - smooth-scroll: gliding mouse-wheel scrolling (Lenis)
          - reveal: anything with data-reveal rises into view on scroll
+         - text-reveal: anything with data-text-reveal slides up line by line
          - film-effects: film dust, fibers and scratches on the canvas -->
     <script>
       import "../scripts/smooth-scroll.ts";
       import "../scripts/reveal.ts";
+      import "../scripts/text-reveal.ts";
       import "../scripts/film-effects.ts";
     </script>
   </body>
