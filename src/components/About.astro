@@ -1,0 +1,728 @@
+---
+/* ==========================================================================
+   About.astro: "Curious about me?" + the About view
+   1. The cover: "CURIOUS" on the top half of the screen, "ABOUT ME?" on
+      the bottom half
+   2. The split: the section pins (stays put) while you scroll. The words
+      hold still for a moment first, then the two halves slide apart, top
+      half up and bottom half down. Scroll scrubs it, so scrolling back up
+      closes it again.
+   3. Underneath: a big photo with "Hi, I'm Cj", the stats, and three Mac
+      style folders. Hovering a folder (tapping on phones) pulls out three
+      photo cards that spread like a hand of cards, with a caption above.
+
+   Images are picked up automatically, no code changes needed:
+   - Your photo:   src/assets/about-photo.jpg (or .png, .webp, .avif)
+   - Folder cards: src/assets/about/puppies/, about/travel/, about/hungry/
+     (the first 3 images in each folder, in filename order: 1.jpg, 2.jpg...)
+   Until they exist, placeholders show instead.
+   ========================================================================== */
+
+import { Image } from "astro:assets";
+
+// ---------- Your photo ----------
+const photoFiles = import.meta.glob<{ default: ImageMetadata }>(
+  "../assets/about-photo.{jpg,jpeg,png,webp,avif}",
+  { eager: true }
+);
+const photo = Object.values(photoFiles)[0]?.default;
+
+// ---------- Stats: edit the rows here ----------
+// "lines" can hold one or more lines. "muted" shows extra text in gray.
+const LINKEDIN_URL = "#"; // paste your LinkedIn profile link here
+const stats = [
+  {
+    label: "Education",
+    lines: [
+      { text: "Associate's, Web Development" },
+      { text: "Bachelor's, Software Development", muted: "(in progress)" },
+    ],
+  },
+  { label: "Focus", lines: [{ text: "Web development & technical SEO" }] },
+  { label: "Based in", lines: [{ text: "Dallas–Fort Worth, Texas" }] },
+];
+
+// ---------- Folders: edit the names and captions here ----------
+// "slug" is the image folder name inside src/assets/about/
+const folders = [
+  { slug: "puppies", label: "puppies", caption: "[ One line about your pups ]" },
+  { slug: "travel", label: "travel", caption: "[ Favorite place you've been ]" },
+  { slug: "hungry", label: "hungry?", caption: "[ What you're always ordering ]" },
+];
+
+// Finds every image in src/assets/about/<folder>/ and groups them by folder
+const folderImageFiles = import.meta.glob<{ default: ImageMetadata }>(
+  "../assets/about/*/*.{jpg,jpeg,png,webp,avif}",
+  { eager: true }
+);
+const imagesFor = (slug: string) =>
+  Object.entries(folderImageFiles)
+    .filter(([path]) => path.includes(`/about/${slug}/`))
+    .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+    .slice(0, 3)
+    .map(([, file]) => file.default);
+
+// The three cards: left, middle, right. Placeholder tints show until
+// real images are added.
+const cardSlots = ["left", "middle", "right"];
+const placeholderTints = ["#d9d6c8", "#e6c7bf", "#cfd3c4"];
+---
+
+<section class="about" id="about" aria-labelledby="about-title" data-about>
+  <!-- ---------- The cover: splits open as you scroll ----------
+       Purely decorative (the real heading is "Hi, I'm Cj"), so screen
+       readers skip it. -->
+  <div class="about-cover" aria-hidden="true" data-about-cover>
+    <div class="cover-half cover-top" data-cover-top>
+      <span class="cover-hint label">Keep scrolling ↓</span>
+      <p class="cover-word display" data-text-reveal>Curious</p>
+    </div>
+    <div class="cover-half cover-bottom" data-cover-bottom>
+      <p class="cover-word display" data-text-reveal data-text-reveal-delay="0.12">
+        About <span class="accent">me?</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- ---------- The About view (sits underneath the cover) ---------- -->
+  <div class="about-view">
+    <div class="about-photo-wrap">
+      <div class="about-photo" data-about-photo>
+        {
+          photo ? (
+            <Image src={photo} alt="Cj" widths={[640, 960, 1280]} sizes="(max-width: 767px) 100vw, 50vw" />
+          ) : (
+            <div class="about-photo-placeholder label">[ Your photo ]</div>
+          )
+        }
+      </div>
+      <h2 class="about-title" id="about-title">
+        Hi, I'm <span class="accent">Cj</span>
+      </h2>
+    </div>
+
+    <div class="about-details">
+      <dl class="about-stats">
+        {
+          stats.map((stat) => (
+            <div class="stat">
+              <dt class="label">{stat.label}</dt>
+              <dd>
+                {stat.lines.map((line) => (
+                  <span class="stat-line">
+                    {line.text}
+                    {line.muted && <span class="muted"> {line.muted}</span>}
+                  </span>
+                ))}
+              </dd>
+            </div>
+          ))
+        }
+        <div class="stat">
+          <dt class="label">LinkedIn</dt>
+          <dd><a class="stat-link" href={LINKEDIN_URL} target="_blank" rel="noopener">Connect with me ↗</a></dd>
+        </div>
+      </dl>
+
+      <div class="about-misc">
+        <p class="label">( Miscellaneous )</p>
+        <div class="folders" data-folders>
+          {
+            folders.map((folder) => {
+              const images = imagesFor(folder.slug);
+              return (
+                <button
+                  class="folder"
+                  type="button"
+                  aria-expanded="false"
+                  aria-describedby={`folder-caption-${folder.slug}`}
+                  data-folder
+                >
+                  <span class="folder-caption" id={`folder-caption-${folder.slug}`}>
+                    {folder.caption}
+                  </span>
+
+                  <span class="folder-icon" aria-hidden="true">
+                    {/* Back of the folder, with the tab */}
+                    <svg class="folder-back" viewBox="0 0 96 78">
+                      <path d="M5 9a5 5 0 0 1 5-5h21.5a5 5 0 0 1 3.7 1.6L39 10h47a5 5 0 0 1 5 5v53a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5z" />
+                    </svg>
+
+                    {/* The cards sit between the back and the front flap,
+                        so they look like they're pulled out of the folder */}
+                    <span class="fan">
+                      {cardSlots.map((slot, i) => (
+                        <span class={`card card-${slot}`} style={`--tint: ${placeholderTints[i]}`}>
+                          {images[i] && <Image src={images[i]} alt="" width={320} />}
+                        </span>
+                      ))}
+                    </span>
+
+                    {/* Front flap */}
+                    <svg class="folder-front" viewBox="0 0 96 78">
+                      <defs>
+                        <linearGradient id={`folder-front-${folder.slug}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0" style="stop-color: var(--folder-front-top)" />
+                          <stop offset="1" style="stop-color: var(--folder-front-bottom)" />
+                        </linearGradient>
+                      </defs>
+                      <path d="M3 23a5 5 0 0 1 5-5h80a5 5 0 0 1 5 5v46a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill={`url(#folder-front-${folder.slug})`} />
+                      <path class="folder-shine" d="M8 19.2h80" />
+                    </svg>
+                  </span>
+
+                  <span class="folder-label">{folder.label}</span>
+                </button>
+              );
+            })
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<script>
+  import { gsap } from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  // Settings: tweak these to taste
+  const SPLIT_LENGTH = "+=130%"; // total scrolling while pinned (100% = one screen)
+  const HOLD = 0.3; // share of that scrolling where the words just sit still before splitting
+  const PHOTO_START_SCALE = 1.08; // the photo settles from this size to 1
+
+  const section = document.querySelector<HTMLElement>("[data-about]");
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  // ---------- 1. The split ----------
+  if (section && !prefersReducedMotion) {
+    const cover = section.querySelector("[data-about-cover]");
+    const top = section.querySelector("[data-cover-top]");
+    const bottom = section.querySelector("[data-cover-bottom]");
+    const photo = section.querySelector("[data-about-photo]");
+
+    const split = gsap.timeline({
+      defaults: { ease: "none" }, // scroll position drives it, so no easing
+      scrollTrigger: {
+        trigger: section,
+        start: "top top", // when the section reaches the top of the screen
+        end: SPLIT_LENGTH,
+        pin: true, // holds the section in place while the halves slide
+        // Follows the scroll exactly. (Lenis already smooths the scrolling;
+        // extra smoothing here made the halves lag behind and the bottom
+        // half linger over the section after it unpinned.)
+        scrub: true,
+        anticipatePin: 1,
+      },
+    });
+
+    split
+      // 1. Hold: nothing moves, so "Curious about me?" is fully readable
+      .to({}, { duration: HOLD })
+      // 2. Split: the halves slide fully off screen (a little past the
+      //    edge, so no sliver is left showing)
+      .to(top, { yPercent: -102, duration: 1 - HOLD }, HOLD)
+      .to(bottom, { yPercent: 102, duration: 1 - HOLD }, HOLD)
+      .fromTo(photo, { scale: PHOTO_START_SCALE }, { scale: 1, duration: 1 - HOLD }, HOLD)
+      // 3. Fully open: hide the cover so it can't cover the section or
+      //    block clicks once the section starts scrolling again
+      .set(cover, { autoAlpha: 0 });
+
+    // Pinning adds extra scroll space to the page, so every other scroll
+    // animation re-measures its position after fonts and images load
+    window.addEventListener("load", () => ScrollTrigger.refresh());
+  }
+
+  // ---------- 2. Folders on touch screens and keyboards ----------
+  // Mouse users open folders by hovering (pure CSS). Tapping or pressing
+  // Enter toggles a folder open and closed instead.
+  const folderButtons = document.querySelectorAll<HTMLButtonElement>("[data-folder]");
+  let lastPointer = "";
+
+  const setOpen = (button: HTMLButtonElement, open: boolean) => {
+    button.classList.toggle("is-open", open);
+    button.setAttribute("aria-expanded", String(open));
+  };
+  const closeAll = (except?: HTMLButtonElement) =>
+    folderButtons.forEach((b) => b !== except && setOpen(b, false));
+
+  folderButtons.forEach((button) => {
+    button.addEventListener("pointerdown", (e) => (lastPointer = e.pointerType));
+    button.addEventListener("mouseenter", () => button.setAttribute("aria-expanded", "true"));
+    button.addEventListener("mouseleave", () => {
+      if (!button.classList.contains("is-open")) button.setAttribute("aria-expanded", "false");
+    });
+    button.addEventListener("click", () => {
+      const fromMouse = lastPointer === "mouse";
+      lastPointer = "";
+      if (fromMouse) return; // hover already handles the mouse
+      closeAll(button);
+      setOpen(button, !button.classList.contains("is-open"));
+    });
+  });
+
+  // Tapping anywhere else, or pressing Escape, closes any open folder
+  document.addEventListener("click", (e) => {
+    if (!(e.target as HTMLElement).closest("[data-folder]")) closeAll();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAll();
+  });
+</script>
+
+<style>
+  .about {
+    position: relative;
+
+    /* Mac folder colors (the one spot of blue on the site, on purpose) */
+    --folder-back: #4a9ae6;
+    --folder-front-top: #a9d8fd;
+    --folder-front-bottom: #74baf5;
+
+    /* Card fan sizes (desktop). Mobile overrides these further down. */
+    --card-w: 8.75rem;
+    --card-h: 11rem;
+    --spread: 7rem; /* how far the side cards slide out */
+    --lift: 6.25rem; /* how high the middle card rises */
+    --tilt: 12deg; /* how much the side cards tilt */
+  }
+
+  /* ==========================================================================
+     The About view
+     ========================================================================== */
+  .about-view {
+    position: relative;
+    z-index: 0; /* keeps the folder layers inside the view, below the cover */
+    display: grid;
+    grid-template-columns: repeat(var(--grid-columns), 1fr); /* same columns as the background grid */
+    min-height: 100svh;
+    padding-block: clamp(5rem, 11svh, 7rem) var(--space-8);
+  }
+
+  /* ---------- Photo + heading ---------- */
+  .about-photo-wrap {
+    position: relative;
+    grid-column: 1 / 4; /* first half of the grid */
+    align-self: start; /* hugs the photo, so the heading lands on its bottom edge */
+    padding-inline: var(--gutter) var(--space-7);
+    padding-bottom: calc(var(--text-section) * 0.1); /* the heading hangs over the photo's bottom edge */
+  }
+
+  .about-photo {
+    overflow: hidden;
+    height: min(68svh, 44rem);
+    border-radius: 28px;
+    background: #d9d6c8;
+    transform-origin: center bottom;
+  }
+
+  .about-photo :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* fills the frame whatever shape the photo is */
+  }
+
+  .about-photo-placeholder {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    color: var(--color-muted);
+  }
+
+  /* Overlaps the bottom edge of the photo */
+  .about-title {
+    position: absolute;
+    left: calc(var(--gutter) * 0.5);
+    bottom: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--text-section);
+    line-height: 0.9;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* ---------- Stats + folders ---------- */
+  .about-details {
+    grid-column: 4 / -1; /* second half, starting on a grid line */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-9);
+    padding-inline: var(--space-3) var(--gutter); /* same small gap from the grid line as the nav links */
+  }
+
+  .about-stats {
+    border-top: 1px solid var(--color-line-strong);
+  }
+
+  .stat {
+    display: grid;
+    grid-template-columns: 9rem 1fr;
+    align-items: baseline;
+    gap: var(--space-4);
+    padding-block: var(--space-5);
+    border-bottom: 1px solid var(--color-line-strong);
+  }
+
+  .stat dt {
+    color: var(--color-muted);
+  }
+
+  .stat dd {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    font-size: var(--text-h3);
+  }
+
+  .stat-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--color-line-strong);
+    text-underline-offset: 0.2em;
+    transition: color var(--duration-fast), text-decoration-color var(--duration-fast);
+  }
+
+  .stat-link:hover {
+    color: var(--color-accent);
+    text-decoration-color: currentColor;
+  }
+
+  .about-misc {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .about-misc .label {
+    color: var(--color-muted);
+  }
+
+  /* ==========================================================================
+     Folders
+     ========================================================================== */
+  .folders {
+    display: flex;
+    gap: var(--space-9);
+  }
+
+  .folder {
+    --open: 0; /* 0 = closed, 1 = open. Everything below reads this. */
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  /* What opens a folder: hover (mouse only), a tap, or keyboard focus */
+  @media (hover: hover) {
+    .folder:hover {
+      --open: 1;
+    }
+  }
+  .folder.is-open,
+  .folder:focus-visible {
+    --open: 1;
+  }
+  .folder:focus-visible {
+    outline: none; /* the blue label pill shows keyboard focus instead */
+  }
+
+  /* The icon: back, cards and front flap stacked in the same spot */
+  .folder-icon {
+    position: relative;
+    display: grid;
+    width: 6rem;
+    height: 4.875rem;
+    border-radius: 8px;
+    /* Finder style selection: a soft gray box shows behind it when open */
+    background: rgb(43 40 37 / calc(0.08 * var(--open)));
+    box-shadow: 0 0 0 6px rgb(43 40 37 / calc(0.08 * var(--open)));
+    transition: background-color var(--duration-fast), box-shadow var(--duration-fast);
+  }
+
+  .folder-icon > * {
+    grid-area: 1 / 1; /* every layer in the same grid cell, on top of each other */
+  }
+
+  .folder-back,
+  .folder-front {
+    width: 100%;
+    height: 100%;
+  }
+
+  .folder-back path {
+    fill: var(--folder-back);
+  }
+
+  .folder-front {
+    z-index: 2;
+    filter: drop-shadow(0 1px 1.5px rgb(20 60 120 / 0.25));
+  }
+
+  .folder-shine {
+    fill: none;
+    stroke: rgb(255 255 255 / 0.7);
+    stroke-width: 1.2;
+    stroke-linecap: round;
+  }
+
+  /* When open, the name turns into a blue label pill */
+  .folder-label {
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-size: var(--text-small);
+    font-weight: 500;
+    background: rgb(47 111 222 / var(--open));
+    color: color-mix(in srgb, #fff calc(var(--open) * 100%), var(--color-ink));
+    transition: background-color var(--duration-fast), color var(--duration-fast);
+  }
+
+  /* ---------- The card fan ---------- */
+  .fan {
+    position: absolute;
+    left: 50%;
+    bottom: 1.375rem; /* starts just inside the folder */
+    z-index: 1; /* between the back (0) and the front flap (2) */
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .card {
+    position: absolute;
+    bottom: 0;
+    left: calc(var(--card-w) / -2);
+    width: var(--card-w);
+    height: var(--card-h);
+    overflow: hidden;
+    border: 6px solid #fff;
+    border-radius: 20px;
+    background: var(--tint);
+    box-shadow: 0 14px 32px rgb(43 40 37 / 0.22);
+
+    /* Closed: small and tucked inside the folder. Open: slid out to its
+       spot (--x, --y, --r). Multiplying by --open blends between the two,
+       and the transition animates it. */
+    opacity: var(--open);
+    transform:
+      translate(calc(var(--x) * var(--open)), calc(var(--y) * var(--open) + 30% * (1 - var(--open))))
+      rotate(calc(var(--r) * var(--open)))
+      scale(calc(0.45 + 0.55 * var(--open)));
+    transition:
+      transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.15),
+      opacity 0.2s;
+  }
+
+  .card :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .card-left {
+    --x: calc(var(--spread) * -1);
+    --y: calc(var(--lift) * -0.7);
+    --r: calc(var(--tilt) * -1);
+  }
+  .card-middle {
+    --x: 0px;
+    --y: calc(var(--lift) * -1);
+    --r: 0deg;
+    transition-delay: 0.04s;
+  }
+  .card-right {
+    --x: var(--spread);
+    --y: calc(var(--lift) * -0.7);
+    --r: var(--tilt);
+    transition-delay: 0.08s;
+  }
+
+  /* ---------- Caption above the cards ---------- */
+  .folder-caption {
+    position: absolute;
+    left: 50%;
+    bottom: calc(2.25rem + 1.375rem + var(--lift) + var(--card-h) + var(--space-3));
+    z-index: 3;
+    width: max-content;
+    max-width: 20rem;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-pill);
+    background: var(--color-ink);
+    color: var(--color-bg);
+    font-size: var(--text-small);
+    line-height: 1.35;
+    text-align: center;
+    pointer-events: none;
+    opacity: var(--open);
+    transform: translate(-50%, calc(8px * (1 - var(--open))));
+    transition: opacity 0.25s, transform 0.25s;
+  }
+
+  /* ==========================================================================
+     The cover
+     Without JavaScript, or with "Reduce motion" on, it simply sits above
+     the About view as a heading. With motion, it covers the first screen
+     of the section and splits open (see the script).
+     ========================================================================== */
+  .about-cover {
+    display: flex;
+    flex-direction: column;
+  }
+
+  :global(.motion-ok) .about-cover {
+    position: absolute;
+    inset: 0 0 auto 0;
+    z-index: 2;
+    height: 100svh;
+  }
+  :global(.motion-ok) .cover-hint {
+    display: block;
+  }
+  .cover-half {
+    position: relative;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+
+    /* Opaque, with its own grid lines and grain, so it looks exactly like
+       the page while hiding the About view underneath */
+    background-color: var(--color-bg);
+    background-image: linear-gradient(to right, var(--color-line) 1px, transparent 1px);
+    background-size: calc(100% / var(--grid-columns)) 100%;
+  }
+
+  .cover-half::before {
+    content: "";
+    position: absolute;
+    inset: -200px;
+    pointer-events: none;
+    background-image: var(--grain-image);
+    background-size: var(--grain-size) var(--grain-size);
+    opacity: var(--grain-opacity);
+    animation: grain var(--grain-speed) steps(1) infinite;
+  }
+
+  /* Top half: word sits at its bottom. Bottom half: word sits at its top. */
+  .cover-top {
+    align-items: flex-end;
+  }
+  .cover-bottom {
+    align-items: flex-start;
+  }
+
+  .cover-word {
+    position: relative; /* above the grain */
+    font-size: clamp(4rem, 17vw, 16rem);
+    line-height: 0.9;
+    text-align: center;
+  }
+  .cover-top .cover-word {
+    padding-bottom: 0.04em;
+  }
+  .cover-bottom .cover-word {
+    padding-top: 0.06em;
+  }
+
+  .cover-hint {
+    display: none; /* only shown when the cover actually splits */
+    position: absolute;
+    top: var(--space-6);
+    right: var(--gutter);
+    color: var(--color-muted);
+  }
+
+  /* ==========================================================================
+     Mobile (under 768px): PROPOSAL, waiting for Cj's approval
+     - Photo full width, heading overlapping its bottom
+     - Stats and folders stacked below
+     - Tapping a folder fans the cards out centered above the row of
+       folders, so the side cards never run off the screen
+     ========================================================================== */
+  @media (max-width: 767px) {
+    .about {
+      --card-w: 5.5rem;
+      --card-h: 7rem;
+      --spread: 4.75rem;
+      --lift: 4rem;
+      --tilt: 10deg;
+    }
+
+    .about-view {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-8);
+    }
+
+    .about-photo-wrap {
+      align-self: stretch; /* full width on phones */
+      padding-inline: var(--gutter);
+    }
+
+    .about-photo {
+      height: auto;
+      aspect-ratio: 4 / 5;
+    }
+
+    .about-title {
+      left: var(--gutter);
+      font-size: clamp(3rem, 15vw, 5rem);
+    }
+
+    .about-details {
+      gap: var(--space-8);
+      padding-inline: var(--gutter);
+    }
+
+    .stat {
+      grid-template-columns: 1fr;
+      gap: var(--space-2);
+    }
+
+    .folders {
+      position: relative; /* the fan and caption center on the whole row */
+      justify-content: space-between;
+      gap: var(--space-4);
+    }
+
+    .folder,
+    .folder-icon {
+      position: static;
+    }
+
+    .fan {
+      bottom: calc(2.25rem + 1.375rem);
+      z-index: 3; /* in front of the folders */
+    }
+
+    .folder-caption {
+      max-width: 80vw;
+    }
+  }
+
+  /* ---------- Reduce motion: no sliding, cards just appear ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .card,
+    .folder-caption {
+      transition: opacity 0.2s;
+    }
+    .cover-half::before {
+      animation: none;
+    }
+  }
+</style>

@@ -2,13 +2,82 @@
 /* ==========================================================================
    Footer.astro: the line at the very bottom of every page
    - Copyright with the current year (updates itself each year)
+   - "Made with ♥ & brain & Figma & Claude", each icon showing a label on
+     hover
    - "Back to the top", which glides up with the smooth scrolling
    ========================================================================== */
 const year = new Date().getFullYear();
+
+// Figma and Claude reuse the logos from the Tools section: once
+// src/assets/tools/figma.svg and claude.svg exist, they show up here too.
+// Until then, a small initial in a circle stands in.
+const toolLogos = import.meta.glob<{ default: ImageMetadata }>(
+  "../assets/tools/*.{svg,png,webp}",
+  { eager: true }
+);
+const logo = (slug: string) =>
+  Object.entries(toolLogos).find(([path]) => path.split("/").pop()?.startsWith(`${slug}.`))?.[1]
+    .default;
+
+// The "Made with" items, in order. "icon" is an SVG path for drawn icons;
+// "logo" is for the tool logos above.
+const madeWith = [
+  {
+    label: "love",
+    className: "is-heart",
+    icon: "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z",
+  },
+  {
+    label: "my brain",
+    className: "is-brain",
+    icon: "M9.5 4A2.5 2.5 0 0 0 7 6.5a2.5 2.5 0 0 0-2.5 4 2.5 2.5 0 0 0 0 4A2.5 2.5 0 0 0 7 18.5 2.5 2.5 0 0 0 12 19V5.5A2.5 2.5 0 0 0 9.5 4zM14.5 4A2.5 2.5 0 0 1 17 6.5a2.5 2.5 0 0 1 2.5 4 2.5 2.5 0 0 1 0 4 2.5 2.5 0 0 1-2.5 4A2.5 2.5 0 0 1 12 19M9 9.5h1.5M14.5 13H16M9 14.5h1",
+  },
+  { label: "Figma", logo: logo("figma"), initial: "F" },
+  { label: "Claude", logo: logo("claude"), initial: "C" },
+];
 ---
 
 <footer class="site-footer">
-  <p class="label">© {year} Cj Lehman-Vo. All rights reserved.</p>
+  <div class="footer-info">
+    <p class="label">© {year} Cj Lehman-Vo. All rights reserved.</p>
+
+    <p class="made-with label">
+      Made with
+      {
+        madeWith.map((item, i) => (
+          <>
+            {i > 0 && <span class="made-and" aria-hidden="true">&amp;</span>}
+            <span class:list={["made-item", item.className]}>
+              {item.icon ? (
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d={item.icon} />
+                </svg>
+              ) : item.logo ? (
+                <img src={item.logo.src} alt="" aria-hidden="true" />
+              ) : (
+                <span class="made-initial" aria-hidden="true">
+                  {item.initial}
+                </span>
+              )}
+              <!-- The hover label. Also what screen readers read, so the
+                   line is announced as "Made with love & my brain & ..." -->
+              <span class="made-label">{item.label}</span>
+              {i < madeWith.length - 1 && <span class="sr-only"> &amp; </span>}
+            </span>
+          </>
+        ))
+      }
+    </p>
+  </div>
+
   <!-- #main is the top of every page's content (see Base.astro) -->
   <a class="footer-top label" href="#main">Back to the top ↑</a>
 </footer>
@@ -19,13 +88,19 @@ const year = new Date().getFullYear();
     z-index: var(--z-content);
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-end;
     gap: var(--space-4);
     padding: var(--space-6) var(--gutter);
   }
 
   .site-footer .label {
     color: var(--color-ink);
+  }
+
+  .footer-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
   }
 
   .footer-top {
@@ -37,7 +112,81 @@ const year = new Date().getFullYear();
     color: var(--color-accent);
   }
 
-  /* Mobile (under 768px), approved: the two lines stack */
+  /* ---------- "Made with" line ---------- */
+  .made-with {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .made-and {
+    opacity: 0.6;
+  }
+
+  .made-item {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  .made-item svg,
+  .made-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .is-heart {
+    color: var(--color-accent);
+  }
+
+  /* Placeholder until a Figma or Claude logo is added */
+  .made-initial {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--color-ink);
+    border-radius: 50%;
+    font-size: 0.6rem;
+    letter-spacing: 0;
+  }
+
+  /* Hover: the icon lifts a little and its label pops up above it */
+  .made-item:hover {
+    transform: translateY(-2px);
+  }
+
+  .made-label {
+    position: absolute;
+    bottom: calc(100% + var(--space-2));
+    left: 50%;
+    translate: -50% 4px;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-pill);
+    background: var(--color-ink);
+    color: var(--color-bg);
+    font-size: var(--text-label);
+    letter-spacing: 0.04em;
+    text-transform: none;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      opacity var(--duration-fast) var(--ease-out),
+      translate var(--duration-fast) var(--ease-out);
+  }
+
+  .made-item:hover .made-label {
+    opacity: 1;
+    translate: -50% 0;
+  }
+
+  /* Mobile (under 768px), approved: everything stacks */
   @media (max-width: 767px) {
     .site-footer {
       flex-direction: column;
